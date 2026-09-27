@@ -18,3 +18,35 @@
 .social-icon{width:20px;height:20px;flex:0 0 20px;color:#00c8ff}
 .social-links a:hover .social-icon,.footer-social a:hover .social-icon{filter:drop-shadow(0 0 6px rgba(0,200,255,.65))}
 @media(max-width:900px){.header{min-height:76px}.logo img{width:220px;height:62px}.footer-logo img{width:230px;height:68px}}
+
+/* Ajustes finais: WhatsApp, redes sociais, apartamento e responsividade */
+.header-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.header-social{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;transition:.2s ease}
+.header-social svg{width:22px;height:22px}
+.header-social.instagram{color:#fff;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)}
+.header-social.linkedin{color:#0a66c2;background:#fff}
+.header-social:hover{transform:translateY(-2px);filter:brightness(1.1)}
+.whatsapp-btn{background:#12c759!important;color:#fff!important;display:inline-flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 8px 22px rgba(18,199,89,.18)}
+.whatsapp-btn:hover{background:#0faf4e!important}
+.whatsapp-btn svg{width:22px;height:22px;flex:0 0 22px}
+.hero-wa{background:#12c759!important;color:#fff!important}
+.apt{background-image:linear-gradient(0deg,#001,transparent 60%),url('apartamento-premium.jpg')!important}
+
+@media(max-width:1180px) and (min-width:901px){
+ .header{padding-left:3%;padding-right:3%;gap:14px}.logo{min-width:205px}.logo img{width:205px}.header nav{gap:12px}.header nav a{font-size:11px}.whatsapp-btn{padding:12px 14px}.header-social{width:31px;height:31px}
+}
+@media(max-width:900px){
+ body{overflow-x:hidden}.header{position:sticky;display:grid;grid-template-columns:1fr auto;grid-template-areas:"logo actions" "nav nav";gap:8px 10px;padding:7px 14px 9px;justify-content:initial;min-height:auto}
+ .header .logo{grid-area:logo;justify-self:start}.header .logo img{width:145px;height:48px;object-position:left center}
+ .header-actions{grid-area:actions;gap:7px}.header-social{width:32px;height:32px}.header-social svg{width:20px;height:20px}
+ .header-actions .whatsapp-btn{width:38px;height:38px;padding:0;border-radius:50%}.header-actions .whatsapp-btn span{display:none}.header-actions .whatsapp-btn svg{width:23px;height:23px}
+ .header nav{grid-area:nav;display:flex!important;justify-content:flex-start;gap:18px;overflow-x:auto;white-space:nowrap;padding:7px 2px 3px;scrollbar-width:none}.header nav::-webkit-scrollbar{display:none}.header nav a{font-size:11px;flex:0 0 auto}
+ .hero{min-height:560px;background-position:58% center}.hero-content{padding:58px 20px 42px;max-width:100%}.hero h1{font-size:clamp(36px,10.5vw,48px);line-height:1.02;overflow-wrap:normal}.hero p{font-size:15px;max-width:92%}.actions{width:100%;align-items:stretch}.actions a{text-align:center;width:100%;max-width:360px}.benefits{display:none}
+ .services{grid-template-columns:1fr 1fr;padding:12px;gap:10px}.services article{min-height:145px;padding:17px 13px;font-size:24px}.services b{font-size:12px}.services span{font-size:11px}
+ .about{display:flex;flex-direction:column}.text{padding:48px 20px}.text h2,.solutions h2,.process h2,.referral h2,.contact h2{font-size:28px}.about-photo{min-height:300px;order:2}
+ .solutions,.process,.referral,.contact{padding:45px 20px}.solution-grid{grid-template-columns:1fr;gap:12px}.solution-grid article{height:220px}.apt{background-position:center}
+ .steps{gap:18px}.steps article{grid-template-columns:45px 1fr;align-items:center}.steps article span{grid-column:2}.panels{grid-template-columns:1fr}.panels article{min-height:330px;padding:48px 20px}.partner .btn{line-height:1.35}
+ .referral{gap:22px}.referral>.btn{width:100%;text-align:center}.contact{gap:35px}.contact-info a{font-size:15px;overflow-wrap:anywhere}.form-grid{grid-template-columns:1fr}input,select,textarea{font-size:16px}
+ footer{padding:28px 20px}.footer-logo img{width:205px;height:62px}
+}
+@media(max-width:420px){.header .logo img{width:128px}.header-social{width:29px;height:29px}.header-actions .whatsapp-btn{width:34px;height:34px}.services{grid-template-columns:1fr 1fr}.hero-content{padding-left:16px;padding-right:16px}.solutions,.process,.referral,.contact{padding-left:16px;padding-right:16px}}
