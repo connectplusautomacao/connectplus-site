@@ -8,3 +8,13 @@
 .social-links a:hover,.footer-social a:hover{border-color:#00c8ff;color:#00c8ff}
 .footer-social{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
 @media(max-width:900px){.logo{min-width:0}.logo img{width:210px;height:54px}.footer-logo img{height:60px;object-position:center}.footer-social{justify-content:center}}
+
+/* Final brand polish */
+.header{min-height:86px;height:auto;padding-top:7px;padding-bottom:7px}
+.logo{min-width:245px}
+.logo img{width:245px;height:70px;object-fit:contain;object-position:left center;filter:drop-shadow(0 0 8px rgba(0,200,255,.18))}
+.footer-logo img{height:72px;width:250px}
+.social-links a,.footer-social a{display:inline-flex;align-items:center;gap:8px}
+.social-icon{width:20px;height:20px;flex:0 0 20px;color:#00c8ff}
+.social-links a:hover .social-icon,.footer-social a:hover .social-icon{filter:drop-shadow(0 0 6px rgba(0,200,255,.65))}
+@media(max-width:900px){.header{min-height:76px}.logo img{width:220px;height:62px}.footer-logo img{width:230px;height:68px}}
