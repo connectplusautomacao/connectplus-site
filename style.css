@@ -50,3 +50,13 @@
  footer{padding:28px 20px}.footer-logo img{width:205px;height:62px}
 }
 @media(max-width:420px){.header .logo img{width:128px}.header-social{width:29px;height:29px}.header-actions .whatsapp-btn{width:34px;height:34px}.services{grid-template-columns:1fr 1fr}.hero-content{padding-left:16px;padding-right:16px}.solutions,.process,.referral,.contact{padding-left:16px;padding-right:16px}}
+
+
+/* Última atualização aprovada: imagens corretas para Áreas Externas e Home Theater */
+.outdoor{background-image:linear-gradient(0deg,#001,transparent 60%),url('areas-externas-premium.jpg')!important}
+.cinema{background-image:linear-gradient(0deg,#001,transparent 60%),url('home-theater-premium.jpg')!important}
+
+.hero-whatsapp{display:inline-flex;align-items:center;gap:10px;background:#12c95b!important;color:#fff!important}
+.hero-whatsapp .wa-icon{width:26px;height:26px;flex:0 0 26px}
+.hero-whatsapp:hover{filter:brightness(1.06)}
+@media(max-width:900px){.hero-whatsapp{justify-content:center;width:100%;max-width:330px}}
