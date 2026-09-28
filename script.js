@@ -1,1 +1,24 @@
-function enviarWhatsApp(e){e.preventDefault();const nome=document.getElementById('nome').value;const telefone=document.getElementById('telefone').value;const email=document.getElementById('email').value;const imovel=document.getElementById('imovel').value;const mensagem=document.getElementById('mensagem').value;const texto=`Olá! Meu nome é ${nome}. WhatsApp: ${telefone}. E-mail: ${email}. Tipo de imóvel: ${imovel}. ${mensagem}`;window.open('https://wa.me/5571993342920?text='+encodeURIComponent(texto),'_blank');return false;}
+function enviarWhatsApp(e) {
+  e.preventDefault();
+
+  const nome = document.getElementById('nome').value;
+  const telefone = document.getElementById('telefone').value;
+  const email = document.getElementById('email').value;
+  const imovel = document.getElementById('imovel').value;
+  const mensagem = document.getElementById('mensagem').value;
+
+  const texto = `Olá! Meu nome é ${nome}. WhatsApp: ${telefone}. E-mail: ${email}. Tipo de imóvel: ${imovel}. ${mensagem}`;
+
+  // Registra a conversão no Google Ads
+  if (typeof gtag_report_conversion === 'function') {
+    gtag_report_conversion();
+  }
+
+  // Abre o WhatsApp da Connect Plus
+  window.open(
+    'https://wa.me/5571993342920?text=' + encodeURIComponent(texto),
+    '_blank'
+  );
+
+  return false;
+}
