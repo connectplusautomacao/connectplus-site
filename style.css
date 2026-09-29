@@ -60,3 +60,215 @@
 .hero-whatsapp .wa-icon{width:26px;height:26px;flex:0 0 26px}
 .hero-whatsapp:hover{filter:brightness(1.06)}
 @media(max-width:900px){.hero-whatsapp{justify-content:center;width:100%;max-width:330px}}
+
+
+/* ===== INDIQUE E GANHE - CONNECT PLUS ===== */
+
+.referral-premium{
+  position:relative;
+  overflow:hidden;
+  padding:90px 7%;
+  background:
+    radial-gradient(circle at 85% 15%,rgba(0,200,255,.16),transparent 30%),
+    radial-gradient(circle at 15% 85%,rgba(219,166,57,.10),transparent 30%),
+    linear-gradient(135deg,#02070d 0%,#061522 55%,#03101a 100%);
+}
+
+.referral-premium::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-top:1px solid rgba(0,200,255,.25);
+  border-bottom:1px solid rgba(0,200,255,.18);
+}
+
+.referral-intro{
+  position:relative;
+  max-width:900px;
+  margin:0 auto 50px;
+  text-align:center;
+}
+
+.referral-intro .eyebrow{
+  display:block;
+  margin-bottom:14px;
+  color:#00c8ff;
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:5px;
+}
+
+.referral-premium h2{
+  margin:0 0 10px;
+  font-size:clamp(42px,6vw,76px);
+  line-height:1;
+  font-weight:900;
+  letter-spacing:-2px;
+  color:#fff;
+}
+
+.referral-premium h2 em{
+  font-style:normal;
+  color:#e2ad43;
+  text-shadow:0 0 25px rgba(226,173,67,.25);
+}
+
+.referral-intro h3{
+  margin:18px 0 28px;
+  color:#dce8ef;
+  font-size:clamp(15px,2vw,20px);
+  letter-spacing:4px;
+  font-weight:700;
+}
+
+.referral-intro p{
+  max-width:780px;
+  margin:10px auto;
+  color:#c6d1d9;
+  font-size:17px;
+  line-height:1.7;
+}
+
+.referral-intro strong{
+  color:#e2ad43;
+}
+
+.referral-steps{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  max-width:1200px;
+  margin:45px auto;
+}
+
+.referral-steps > div{
+  min-height:155px;
+  padding:25px 20px;
+  border:1px solid rgba(0,200,255,.25);
+  border-radius:18px;
+  background:rgba(3,15,25,.75);
+  box-shadow:0 12px 35px rgba(0,0,0,.22);
+}
+
+.referral-steps > div:last-child{
+  border-color:rgba(226,173,67,.55);
+}
+
+.referral-steps b{
+  display:block;
+  margin-bottom:14px;
+  color:#00c8ff;
+  font-size:15px;
+}
+
+.referral-steps > div:last-child b{
+  color:#e2ad43;
+}
+
+.referral-steps span{
+  display:block;
+  color:#d5dee4;
+  font-size:14px;
+  line-height:1.55;
+}
+
+.referral-info{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+  max-width:1200px;
+  margin:35px auto;
+}
+
+.referral-info > div{
+  padding:28px;
+  border:1px solid rgba(0,200,255,.24);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(7,28,43,.95),rgba(2,11,18,.95));
+  box-shadow:0 15px 40px rgba(0,0,0,.25);
+}
+
+.referral-info > div:last-child{
+  border-color:rgba(226,173,67,.45);
+}
+
+.referral-info h3{
+  margin:0 0 12px;
+  color:#fff;
+  font-size:16px;
+}
+
+.referral-info p{
+  margin:0;
+  color:#b9c8d1;
+  line-height:1.6;
+  font-size:14px;
+}
+
+.referral-cta{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:min(650px,100%);
+  margin:40px auto 0;
+  padding:20px 28px;
+  border:1px solid #f0c460;
+  border-radius:999px;
+  background:linear-gradient(90deg,#f1c45c,#d99c2e);
+  color:#071018 !important;
+  font-weight:900;
+  letter-spacing:.5px;
+  text-align:center;
+  box-shadow:0 0 30px rgba(226,173,67,.25);
+  transition:.25s ease;
+}
+
+.referral-cta:hover{
+  transform:translateY(-3px);
+  box-shadow:0 0 40px rgba(226,173,67,.42);
+}
+
+@media(max-width:900px){
+  .referral-premium{
+    padding:65px 20px;
+  }
+
+  .referral-steps{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .referral-info{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:560px){
+  .referral-premium{
+    padding:55px 18px;
+  }
+
+  .referral-premium h2{
+    font-size:42px;
+  }
+
+  .referral-intro h3{
+    letter-spacing:2px;
+  }
+
+  .referral-steps{
+    grid-template-columns:1fr;
+  }
+
+  .referral-steps > div{
+    min-height:auto;
+  }
+
+  .referral-cta{
+    padding:18px 20px;
+    font-size:14px;
+  }
+}
