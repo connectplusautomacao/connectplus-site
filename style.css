@@ -272,3 +272,54 @@
     font-size:14px;
   }
 }
+
+
+/* ===== AJUSTE FINAL INDIQUE E GANHE - DESKTOP ===== */
+
+.referral.referral-premium{
+  display:block !important;
+  width:100% !important;
+  padding-top:120px !important;
+}
+
+.referral-premium .referral-intro{
+  width:100%;
+  max-width:900px;
+  margin:0 auto 50px;
+}
+
+.referral-premium .referral-steps{
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  width:100%;
+  max-width:1200px;
+  margin:45px auto !important;
+}
+
+.referral-premium .referral-info{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  width:100%;
+  max-width:1200px;
+  margin:35px auto !important;
+}
+
+@media(max-width:900px){
+  .referral.referral-premium{
+    padding-top:105px !important;
+  }
+
+  .referral-premium .referral-steps{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+
+  .referral-premium .referral-info{
+    grid-template-columns:1fr !important;
+  }
+}
+
+@media(max-width:560px){
+  .referral-premium .referral-steps{
+    grid-template-columns:1fr !important;
+  }
+}
