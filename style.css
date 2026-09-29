@@ -323,3 +323,22 @@
     grid-template-columns:1fr !important;
   }
 }
+
+
+/* Ajuste de espaçamento - Indique e Ganhe */
+.referral.referral-premium{
+  gap:25px !important;
+}
+
+.referral-premium .referral-steps{
+  margin-top:10px !important;
+  margin-bottom:20px !important;
+}
+
+.referral-premium .referral-info{
+  margin-top:15px !important;
+}
+
+.referral-premium .referral-cta{
+  margin-top:20px !important;
+}
