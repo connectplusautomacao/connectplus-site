@@ -342,3 +342,35 @@
 .referral-premium .referral-cta{
   margin-top:20px !important;
 }
+
+
+/* Campanha promocional Outubro */
+.campanha-outubro {
+  width: 100%;
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.campanha-outubro a {
+  display: block;
+}
+
+.campanha-outubro img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+
+@media (max-width: 768px) {
+  .campanha-outubro {
+    margin: 12px auto;
+    padding: 0 12px;
+  }
+
+  .campanha-outubro img {
+    border-radius: 10px;
+  }
+}
