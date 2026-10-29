@@ -426,3 +426,14 @@
   fill: #ffffff !important;
   stroke: none !important;
 }
+/* CONNECT PLUS — CORREÇÃO DO ÍCONE LINKEDIN */
+
+.header-social.linkedin {
+  background: #0a66c2 !important;
+  color: #ffffff !important;
+}
+
+.header-social.linkedin svg {
+  fill: #ffffff !important;
+  stroke: none !important;
+}
