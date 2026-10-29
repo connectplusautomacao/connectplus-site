@@ -437,3 +437,79 @@
   fill: #ffffff !important;
   stroke: none !important;
 }
+
+
+/* ===== CONNECT PLUS: CABEÇALHO RESPONSIVO DEFINITIVO ===== */
+.header {display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:nowrap}
+.header .logo {flex:0 0 auto;min-width:0}
+.header nav {flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:clamp(8px,1.15vw,20px)}
+.header nav a {white-space:nowrap}
+.header-actions {display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.header-actions .whatsapp-btn {white-space:nowrap}
+.menu-toggle {display:none}
+@media (min-width:901px) and (max-width:1250px) {
+ .header {padding-left:2%;padding-right:2%;gap:10px}
+ .header .logo img {width:clamp(160px,17vw,220px)}
+ .header nav {gap:9px}
+ .header nav a {font-size:11px}
+ .header-actions {gap:7px}
+ .header-actions .whatsapp-btn {padding:11px 12px;font-size:12px}
+ .header-social {width:35px;height:35px}
+}
+@media (max-width:900px) {
+ html,body {max-width:100%;overflow-x:clip}
+ .header {display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:'logo actions toggle' 'nav nav nav';align-items:center;gap:0 10px;padding:8px 14px;min-height:64px;height:auto}
+ .header .logo {grid-area:logo;min-width:0;justify-self:start}
+ .header .logo img {width:clamp(120px,35vw,190px);height:46px;max-width:100%;object-fit:contain}
+ .header-actions {grid-area:actions;display:flex;gap:6px;align-items:center}
+ .header-social {width:34px;height:34px;border-radius:9px}
+ .header-social svg {width:20px;height:20px}
+ .header-actions .whatsapp-btn {display:inline-flex!important;width:35px;height:35px;padding:0;border-radius:9px}
+ .header-actions .whatsapp-btn span {display:none}
+ .header-actions .whatsapp-btn svg {width:21px;height:21px}
+ .menu-toggle {grid-area:toggle;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;width:40px;height:40px;padding:8px;border:1px solid #17618c;border-radius:9px;background:#061c2b;color:#fff;cursor:pointer}
+ .menu-toggle span {display:block;width:21px;height:2px;border-radius:2px;background:#fff}
+ .header nav {grid-area:nav;display:none!important;flex-direction:column;align-items:stretch;gap:0;overflow:visible;white-space:normal;padding:0;min-width:0}
+ .header nav.menu-open {display:flex!important;padding:12px 0 8px}
+ .header nav a {font-size:14px;flex:none;padding:12px 8px;border-bottom:1px solid #123b57}
+ .campanha-outubro,.campanha-outubro a,.campanha-outubro img {max-width:100%}
+ .hero {height:auto;min-height:460px;background-position:60% center}
+ .hero-content {padding:52px 18px;max-width:100%}
+ .hero h1 {font-size:clamp(31px,8.2vw,44px);overflow-wrap:break-word}
+ .hero p {max-width:100%}
+ .text h2,.solutions h2,.process h2,.referral h2,.contact h2 {overflow-wrap:break-word}
+ .services,.solution-grid,.steps,.referral-steps,.referral-info,.form-grid {min-width:0}
+ .services article,.solution-grid article,.steps article {min-width:0}
+ .contact,.about,.panels,.referral {min-width:0}
+}
+@media (max-width:380px) {
+ .header {padding-left:9px;padding-right:9px;gap:0 6px}
+ .header .logo img {width:112px}
+ .header-social {width:30px;height:30px}
+ .header-actions .whatsapp-btn {width:31px;height:31px}
+ .menu-toggle {width:36px;height:36px}
+ .hero h1 {font-size:30px}
+}
+
+/* Ajuste final de estabilidade para telas pequenas */
+@media (max-width:900px) {
+ .header {width:100%;max-width:100vw;grid-template-columns:minmax(0,1fr) auto auto}
+ .header-actions {min-width:0;flex-wrap:nowrap}
+ .header .logo img {display:block;max-width:100%;height:auto;max-height:46px}
+ .header nav.menu-open {width:100%;max-width:100%;box-sizing:border-box}
+ .header nav a {display:block;width:100%}
+ .hero,.about,.solutions,.process,.referral,.contact,.panels,footer {max-width:100%;min-width:0}
+ .hero-content,.text,.contact-info {min-width:0}
+ .hero h1,.hero p,.text p {overflow-wrap:anywhere}
+ .solution-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .solution-grid article {min-width:0}
+}
+@media (max-width:560px) {
+ .solution-grid {grid-template-columns:1fr}
+ .header {column-gap:6px;padding-left:10px;padding-right:10px}
+ .header .logo img {width:clamp(106px,31vw,150px)}
+ .header-actions {gap:5px}
+ .header-social {width:31px;height:31px}
+ .header-actions .whatsapp-btn {width:32px;height:32px;min-width:32px}
+ .menu-toggle {width:35px;height:35px;min-width:35px}
+}
