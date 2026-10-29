@@ -365,3 +365,53 @@
   height: auto;
   border-radius: 0;
 }
+/* CONNECT PLUS — CABEÇALHO PREMIUM */
+
+.header-social {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  display: inline-grid;
+  place-items: center;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.header-social svg {
+  width: 24px;
+  height: 24px;
+}
+
+.header-social.instagram {
+  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+  color: #fff;
+}
+
+.header-social.linkedin {
+  background: #0a66c2;
+  color: #fff;
+}
+
+.header-social:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 200, 255, .25);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-actions .whatsapp-btn {
+  background: #08c85a !important;
+  color: #fff !important;
+  border-radius: 14px;
+  padding: 13px 22px;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(0, 200, 90, .20);
+}
+
+.header-actions .whatsapp-btn:hover {
+  background: #06ad4d !important;
+  transform: translateY(-2px);
+}
