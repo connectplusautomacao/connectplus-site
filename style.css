@@ -723,3 +723,38 @@
   background-position: 42% center !important;
   background-repeat: no-repeat !important;
 }
+
+/* CONNECT PLUS — CORREÇÃO DE LARGURA: INDIQUE E GANHE */
+
+.referral.referral-premium {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.referral-premium .referral-steps,
+.referral-premium .referral-info {
+  width: 100%;
+  max-width: 1200px;
+  min-width: 0;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box;
+}
+
+.referral-premium .referral-steps > *,
+.referral-premium .referral-info > * {
+  min-width: 0;
+}
+
+/* Computadores */
+@media (min-width: 901px) {
+  .referral-premium .referral-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .referral-premium .referral-info {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
