@@ -758,3 +758,164 @@
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
+
+/* =========================================
+   ASSISTENTE VIRTUAL CONNECT PLUS
+   ========================================= */
+
+.cp-chatbot {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  font-family: Arial, sans-serif;
+}
+
+/* Botão flutuante */
+#cp-chat-toggle {
+  width: 62px;
+  height: 62px;
+  border: 2px solid #55d9f5;
+  border-radius: 50%;
+  background: #08253c;
+  color: white;
+  font-size: 27px;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease;
+}
+
+#cp-chat-toggle:hover {
+  transform: scale(1.08);
+}
+
+/* Janela do atendimento */
+#cp-chat-window {
+  position: absolute;
+  bottom: 78px;
+  right: 0;
+  width: 350px;
+  max-width: calc(100vw - 32px);
+  max-height: min(520px, calc(100dvh - 115px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #2b7898;
+  border-radius: 18px;
+  background: #081d30;
+  color: #ffffff;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Mantém a janela escondida até ser aberta */
+#cp-chat-window[hidden] {
+  display: none !important;
+}
+
+/* Cabeçalho */
+.cp-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 17px;
+  background: #103650;
+  border-bottom: 1px solid #286782;
+}
+
+.cp-chat-header strong {
+  display: block;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.cp-chat-header small {
+  display: block;
+  margin-top: 4px;
+  color: #76d9ef;
+  font-size: 12px;
+}
+
+/* Botão fechar */
+#cp-chat-close {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 23px;
+  cursor: pointer;
+}
+
+/* Conteúdo */
+.cp-chat-body {
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.cp-chat-message {
+  padding: 14px;
+  border-radius: 12px;
+  background: #143a54;
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#cp-chat-response {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Opções de atendimento */
+.cp-chat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 17px;
+}
+
+.cp-chat-options button {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #287b9a;
+  border-radius: 10px;
+  background: #102e45;
+  color: #ffffff;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cp-chat-options button:hover,
+.cp-chat-options button:focus-visible {
+  background: #176084;
+  border-color: #62d7f3;
+}
+
+/* Rodapé */
+.cp-chat-footer {
+  padding: 12px;
+  border-top: 1px solid #24536a;
+  text-align: center;
+  font-size: 11px;
+  color: #a3c4d3;
+}
+
+/* Versão celular */
+@media (max-width: 600px) {
+  .cp-chatbot {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  #cp-chat-toggle {
+    width: 56px;
+    height: 56px;
+  }
+
+  #cp-chat-window {
+    width: min(350px, calc(100vw - 32px));
+    bottom: 70px;
+  }
+}
