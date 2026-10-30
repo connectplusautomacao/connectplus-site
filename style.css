@@ -715,3 +715,11 @@
   background-repeat: no-repeat !important;
   background-color: #071725;
 }
+
+/* CONNECT PLUS — AJUSTE FINAL DA IMAGEM ALEXA */
+
+.services-premium .services-grid > .service-card:nth-child(6) {
+  background-size: cover !important;
+  background-position: 42% center !important;
+  background-repeat: no-repeat !important;
+}
