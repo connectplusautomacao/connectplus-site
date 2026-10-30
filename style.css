@@ -646,3 +646,38 @@
 .services-premium .services-grid > .service-card:nth-child(6) {
   background-image: url('controle-por-voz-alexa.jpg') !important;
 }
+
+/* CONNECT PLUS — AJUSTES FINAIS DOS CARDS */
+
+/* Impede que a seção ultrapasse a largura da tela */
+.services.services-premium {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Mantém os três cards alinhados no computador */
+.services.services-premium .services-grid {
+  width: 100%;
+  max-width: 1380px;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+/* Ajusta o enquadramento da Alexa */
+.services-premium .services-grid > .service-card:nth-child(6) {
+  background-position: 60% center !important;
+}
+
+/* Adaptação para tablets */
+@media (max-width: 900px) {
+  .services.services-premium .services-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Adaptação para celulares */
+@media (max-width: 560px) {
+  .services.services-premium .services-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
