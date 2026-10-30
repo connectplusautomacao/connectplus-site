@@ -919,3 +919,27 @@
     bottom: 70px;
   }
 }
+
+/* CONNECT PLUS — BOTÃO DE AÇÃO DO ASSISTENTE */
+
+.cp-chat-action {
+  display: block;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #4ad5f4;
+  border-radius: 10px;
+  background: #087da5;
+  color: #ffffff !important;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none !important;
+  line-height: 1.5;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.cp-chat-action:hover,
+.cp-chat-action:focus-visible {
+  background: #0a9ac7;
+  transform: translateY(-1px);
+}
