@@ -620,3 +620,29 @@
   .services.services-premium .service-card h3 {font-size:23px;}
   .services.services-premium .services-cta {margin-top:26px;}
 }
+
+/* CONNECT PLUS — IMAGENS APROVADAS DOS SERVIÇOS */
+
+.services-premium .services-grid > .service-card:nth-child(1) {
+  background-image: url('iluminacao-inteligente.jpg') !important;
+}
+
+.services-premium .services-grid > .service-card:nth-child(2) {
+  background-image: url('sonorizacao-residencial.jpg') !important;
+}
+
+.services-premium .services-grid > .service-card:nth-child(3) {
+  background-image: url('cortinas-automatizadas.jpg') !important;
+}
+
+.services-premium .services-grid > .service-card:nth-child(4) {
+  background-image: url('fechaduras-digitais.jpg') !important;
+}
+
+.services-premium .services-grid > .service-card:nth-child(5) {
+  background-image: url('rede-wifi-residencial.jpg') !important;
+}
+
+.services-premium .services-grid > .service-card:nth-child(6) {
+  background-image: url('controle-por-voz-alexa.jpg') !important;
+}
