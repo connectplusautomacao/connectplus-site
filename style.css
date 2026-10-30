@@ -985,3 +985,27 @@
   background: #176084;
   border-color: #62d7f3;
 }
+
+/* CONNECT PLUS — OPÇÕES DO ORÇAMENTO INTERATIVO */
+
+#cp-chat-window .cp-chat-choice {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  margin: 8px 0 !important;
+  padding: 12px 14px !important;
+  border: 1px solid #18bde8 !important;
+  border-radius: 10px !important;
+  background: #12344d !important;
+  color: #ffffff !important;
+  font-family: inherit;
+  font-size: 13px !important;
+  text-align: left !important;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+#cp-chat-window .cp-chat-choice:hover {
+  background: #176184 !important;
+  border-color: #5ce5ff !important;
+}
