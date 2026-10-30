@@ -51,14 +51,11 @@ function enviarWhatsApp(e) {
       botao: 'Ver nossos serviços'
     },
 
-    orcamento: {
-      texto: '💰 Será um prazer preparar seu orçamento! Nossa equipe pode conhecer suas necessidades e orientar sobre as melhores soluções para sua residência.',
-      link: whatsapp + '?text=' + encodeURIComponent(
-        'Olá! Gostaria de solicitar um orçamento de automação residencial.'
-      ),
-      botao: 'Solicitar orçamento pelo WhatsApp'
+       orcamento: {
+      texto: '💰 Vamos preparar sua solicitação! Primeiro, escolha o serviço de automação residencial que deseja contratar.',
+      link: '#contato',
+      botao: 'Preencher formulário de orçamento'
     },
-
     parcerias: {
       texto: '🤝 A Connect Plus desenvolve parcerias com arquitetos, designers de interiores e corretores de imóveis. Entre em contato para conhecer as possibilidades.',
       link: whatsapp + '?text=' + encodeURIComponent(
@@ -109,8 +106,12 @@ function enviarWhatsApp(e) {
       const assunto = opcao.dataset.cpTopic;
       const dados = respostas[assunto];
 
-      if (!dados) return;
-
+if (!dados) return;
+      
+if (assunto === 'orcamento') {
+  iniciarOrcamentoInterativo();
+  return;
+}
       resposta.replaceChildren();
 
       const mensagem = document.createElement('p');
@@ -129,7 +130,100 @@ function enviarWhatsApp(e) {
         link.addEventListener('click', fecharChat);
       }
 
-      resposta.append(mensagem, link);
-    });
+resposta.append(mensagem, link);
+    }
   });
+
+  /* ORÇAMENTO INTERATIVO CONNECT PLUS */
+
+  function iniciarOrcamentoInterativo() {
+    resposta.replaceChildren();
+
+    const titulo = document.createElement('p');
+    titulo.className = 'cp-chat-message';
+    titulo.textContent = '💰 Qual serviço você deseja contratar?';
+    resposta.appendChild(titulo);
+
+    const servicos = [
+      'Iluminação inteligente',
+      'Sonorização residencial',
+      'Cortinas automatizadas',
+      'Fechaduras digitais',
+      'Rede Wi-Fi residencial',
+      'Controle por voz com Alexa',
+      'Automação residencial completa'
+    ];
+
+    servicos.forEach(function (servico) {
+      const botao = document.createElement('button');
+      botao.type = 'button';
+      botao.className = 'cp-chat-choice';
+      botao.textContent = servico;
+
+      botao.addEventListener('click', function () {
+        escolherImovel(servico);
+      });
+
+      resposta.appendChild(botao);
+    });
+  }
+
+  function escolherImovel(servico) {
+    resposta.replaceChildren();
+
+    const titulo = document.createElement('p');
+    titulo.className = 'cp-chat-message';
+    titulo.textContent = '🏠 Qual é o tipo de imóvel?';
+    resposta.appendChild(titulo);
+
+    const imoveis = [
+      'Casa',
+      'Apartamento',
+      'Imóvel em construção ou reforma'
+    ];
+
+    imoveis.forEach(function (imovel) {
+      const botao = document.createElement('button');
+      botao.type = 'button';
+      botao.className = 'cp-chat-choice';
+      botao.textContent = imovel;
+
+      botao.addEventListener('click', function () {
+        finalizarOrcamento(servico, imovel);
+      });
+
+      resposta.appendChild(botao);
+    });
+  }
+
+  function finalizarOrcamento(servico, imovel) {
+    resposta.replaceChildren();
+
+    const resumo = document.createElement('p');
+    resumo.className = 'cp-chat-message';
+    resumo.textContent =
+      '✅ Solicitação preparada!\n' +
+      'Serviço: ' + servico + '\n' +
+      'Imóvel: ' + imovel;
+    resumo.style.whiteSpace = 'pre-line';
+
+    resposta.appendChild(resumo);
+
+    const texto =
+      'Olá! Gostaria de solicitar um orçamento da Connect Plus.\n\n' +
+      'Serviço: ' + servico + '\n' +
+      'Tipo de imóvel: ' + imovel;
+
+    const link = document.createElement('a');
+    link.className = 'cp-chat-action';
+    link.href =
+      'https://wa.me/5571993342920?text=' +
+      encodeURIComponent(texto);
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = '📲 Enviar solicitação pelo WhatsApp';
+
+    resposta.appendChild(link);
+  }
+
 })();
