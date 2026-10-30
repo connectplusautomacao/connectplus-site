@@ -189,22 +189,50 @@ resposta.append(mensagem, link);
       botao.textContent = imovel;
 
       botao.addEventListener('click', function () {
-        finalizarOrcamento(servico, imovel);
+escolherSituacaoImovel(servico, imovel);
       });
 
       resposta.appendChild(botao);
     });
   }
+function escolherSituacaoImovel(servico, imovel) {
+  resposta.replaceChildren();
 
-  function finalizarOrcamento(servico, imovel) {
-    resposta.replaceChildren();
+  const titulo = document.createElement('p');
+  titulo.className = 'cp-chat-message';
+  titulo.textContent = '🏗️ Em qual situação o imóvel se encontra?';
+  resposta.appendChild(titulo);
+
+  const situacoes = [
+    'Imóvel pronto',
+    'Em construção',
+    'Em reforma',
+    'Ainda estou planejando'
+  ];
+
+  situacoes.forEach(function(situacao) {
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'cp-chat-choice';
+    botao.textContent = situacao;
+
+    botao.addEventListener('click', function() {
+      function finalizarOrcamento(servico, imovel, situacao) {
+    });
+
+    resposta.appendChild(botao);
+  });
+}
+function finalizarOrcamento(servico, imovel, situacao) {
+  resposta.replaceChildren();
 
     const resumo = document.createElement('p');
     resumo.className = 'cp-chat-message';
     resumo.textContent =
       '✅ Solicitação preparada!\n' +
       'Serviço: ' + servico + '\n' +
-      'Imóvel: ' + imovel;
+      'Imóvel: ' + imovel + '\n' +
+'Situação do imóvel: ' + situacao;
     resumo.style.whiteSpace = 'pre-line';
 
     resposta.appendChild(resumo);
@@ -212,8 +240,8 @@ resposta.append(mensagem, link);
     const texto =
       'Olá! Gostaria de solicitar um orçamento da Connect Plus.\n\n' +
       'Serviço: ' + servico + '\n' +
-      'Tipo de imóvel: ' + imovel;
-
+'Tipo de imóvel: ' + imovel + '\n' +
+'Situação do imóvel: ' + situacao;
     const link = document.createElement('a');
     link.className = 'cp-chat-action';
     link.href =
