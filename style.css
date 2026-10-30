@@ -681,3 +681,28 @@
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
+
+/* CONNECT PLUS — AJUSTE EXCLUSIVO PARA COMPUTADORES */
+
+@media (min-width: 901px) {
+
+  .services.services-premium .services-grid {
+    max-width: 1180px;
+    gap: 18px;
+  }
+
+  .services.services-premium .services-grid > article.service-card {
+    min-height: 280px;
+    height: 280px;
+    padding: 22px;
+  }
+
+  .services.services-premium .service-card h3 {
+    font-size: 21px;
+  }
+
+  .services.services-premium .service-card p {
+    font-size: 13px;
+  }
+
+}
