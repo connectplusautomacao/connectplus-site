@@ -130,10 +130,10 @@ if (assunto === 'orcamento') {
         link.addEventListener('click', fecharChat);
       }
 
-resposta.append(mensagem, link);
-    }
+resposta.append(mensagem, link);  
   });
-
+});
+  
   /* ORÇAMENTO INTERATIVO CONNECT PLUS */
 
   function iniciarOrcamentoInterativo() {
