@@ -569,3 +569,54 @@
   .services-premium .services-cta {margin-top:24px;padding:27px 18px;}
 }
 @media(prefers-reduced-motion:reduce) {.services-premium .service-card {transition:none;}}
+
+
+/* CONNECT PLUS — SOLUÇÕES PREMIUM | versão estável e responsiva */
+.services.services-premium {
+  display:block !important;
+  width:100%;max-width:100%;min-width:0;
+  padding:76px clamp(20px,5vw,90px);
+  overflow:hidden;
+}
+.services.services-premium .services-intro {max-width:850px;margin:0 auto 42px;text-align:center;}
+.services.services-premium .services-grid {
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:20px;width:100%;max-width:1380px;margin:0 auto;
+}
+.services.services-premium .services-grid > article.service-card {
+  display:flex !important;flex-direction:column;align-items:flex-start;justify-content:flex-end;
+  position:relative;isolation:isolate;min-width:0;width:auto;
+  min-height:330px;height:auto;padding:26px;gap:0;
+  overflow:hidden;border-radius:20px;border:1px solid rgba(0,200,255,.3);
+  background-size:cover;background-position:center;
+  color:#fff;font-size:inherit;
+}
+.services.services-premium .services-grid > article.service-card::before {
+  content:'';position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg,rgba(0,8,18,.12),rgba(0,8,18,.5) 43%,rgba(0,8,18,.97));
+}
+.services.services-premium .service-card .service-icon {
+  margin:0 auto auto 0;flex:0 0 auto;font-size:22px;color:#00d6ff;
+}
+.services.services-premium .service-card h3 {
+  margin:30px 0 10px;font-size:clamp(20px,1.8vw,26px);
+  font-weight:800;line-height:1.15;color:#fff;
+}
+.services.services-premium .service-card p {
+  margin:0;font-size:14px;line-height:1.55;color:#e0ebf2;
+}
+.services.services-premium .services-cta {max-width:1050px;margin:38px auto 0;}
+@media(max-width:900px) {
+  .services.services-premium {padding:55px 20px;}
+  .services.services-premium .services-grid {grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:15px;}
+  .services.services-premium .services-grid > article.service-card {min-height:300px;padding:22px;}
+}
+@media(max-width:560px) {
+  .services.services-premium {padding:46px 16px;}
+  .services.services-premium .services-intro {margin-bottom:28px;}
+  .services.services-premium .services-grid {grid-template-columns:minmax(0,1fr) !important;gap:16px;}
+  .services.services-premium .services-grid > article.service-card {min-height:280px;padding:23px;}
+  .services.services-premium .service-card h3 {font-size:23px;}
+  .services.services-premium .services-cta {margin-top:26px;}
+}
