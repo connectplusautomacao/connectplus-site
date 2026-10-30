@@ -943,3 +943,22 @@
   background: #0a9ac7;
   transform: translateY(-1px);
 }
+
+
+/* CONNECT PLUS — ÍCONE DO ASSISTENTE VIRTUAL */
+
+#cp-chat-toggle {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#cp-chat-toggle .cp-chat-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
