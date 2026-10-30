@@ -706,3 +706,12 @@
   }
 
 }
+
+/* CONNECT PLUS — ENQUADRAMENTO DA ALEXA */
+
+.services-premium .services-grid > .service-card:nth-child(6) {
+  background-size: 85% auto !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-color: #071725;
+}
