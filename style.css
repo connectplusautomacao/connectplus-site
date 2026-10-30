@@ -962,3 +962,26 @@
   object-fit: cover;
   border-radius: 50%;
 }
+
+/* CONNECT PLUS — BOTÕES DO ORÇAMENTO INTERATIVO */
+
+.cp-chat-choice {
+  display: block;
+  width: 100%;
+  margin-top: 9px;
+  padding: 12px 14px;
+  border: 1px solid #287b9a;
+  border-radius: 10px;
+  background: #102e45;
+  color: #ffffff;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cp-chat-choice:hover,
+.cp-chat-choice:focus-visible {
+  background: #176084;
+  border-color: #62d7f3;
+}
