@@ -217,9 +217,8 @@ function escolherSituacaoImovel(servico, imovel) {
     botao.textContent = situacao;
 
     botao.addEventListener('click', function() {
-      function finalizarOrcamento(servico, imovel, situacao) {
-    });
-
+  finalizarOrcamento(servico, imovel, situacao);
+});
     resposta.appendChild(botao);
   });
 }
