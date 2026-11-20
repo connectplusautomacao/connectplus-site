@@ -1,8 +1,13 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 const cfg = window.CONNECTPLUS_PORTAL_SYNC || {};
 const portalUrl = String(cfg.url || '').replace(/\/$/, '');
 const portalKey = cfg.publishableKey || '';
 const actionUrl = `${portalUrl}/functions/v1/client-projects`;
+const documentBucket = 'client-documents';
+const maxDocumentBytes = 15 * 1024 * 1024;
 const safeText = (value) => String(value ?? '').trim();
+let portalStorageClient = null;
 
 function quoteFingerprint(q) {
   return JSON.stringify({
@@ -161,6 +166,100 @@ function supportPanel() {
   document.getElementById('refreshPortalSupport').addEventListener('click', loadSupportRequests);
 }
 
+function releasedQuotes() {
+  return (window.__cpPortalBridge?.getSavedQuotes() || []).filter((row) => row?.q?.portal?.projectId);
+}
+
+function refreshDocumentProjectOptions() {
+  const select = document.getElementById('portalDocumentProject');
+  if (!select) return;
+  const selected = select.value;
+  select.replaceChildren(new Option('Selecione o projeto', ''));
+  for (const row of releasedQuotes()) {
+    const option = new Option(`${row.q.client || 'Cliente'} · ${row.id}`, row.id);
+    select.append(option);
+  }
+  if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+}
+
+function documentUploadPanel() {
+  const panel = document.getElementById('executionPanel');
+  if (!panel || document.getElementById('portalDocumentUpload')) return;
+  const section = document.createElement('section');
+  section.id = 'portalDocumentUpload';
+  section.className = 'card portal-document-upload';
+  section.innerHTML = `
+    <h2>Documentos para o cliente</h2>
+    <p class="hint">Envie contrato, fotos ou relatório para o projeto já liberado. O arquivo ficará privado e visível somente para o cliente associado.</p>
+    <form id="portalDocumentForm">
+      <label>Projeto liberado
+        <select id="portalDocumentProject" required><option value="">Selecione o projeto</option></select>
+      </label>
+      <label>Nome que o cliente verá
+        <input id="portalDocumentTitle" type="text" maxlength="120" required placeholder="Ex.: Contrato de prestação de serviços">
+      </label>
+      <label>Arquivo (PDF, JPG, PNG, WEBP, DOCX, XLSX ou TXT; até 15 MB)
+        <input id="portalDocumentFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx,.txt" required>
+      </label>
+      <button id="portalDocumentSend" class="button primary" type="submit">Enviar e liberar no portal</button>
+      <button id="refreshPortalDocumentProjects" class="button secondary" type="button">Atualizar lista de projetos</button>
+      <p id="portalDocumentStatus" class="portal-sync-status" role="status" aria-live="polite"></p>
+    </form>`;
+  panel.append(section);
+  refreshDocumentProjectOptions();
+  document.getElementById('refreshPortalDocumentProjects').addEventListener('click', refreshDocumentProjectOptions);
+  const fileInput = document.getElementById('portalDocumentFile');
+  fileInput.addEventListener('change', () => {
+    const title = document.getElementById('portalDocumentTitle');
+    if (!title.value.trim() && fileInput.files?.[0]) title.value = fileInput.files[0].name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
+  });
+  document.getElementById('portalDocumentForm').addEventListener('submit', uploadProjectDocument);
+}
+
+function documentMime(file) {
+  if (file.type) return file.type.toLowerCase();
+  const extension = file.name.toLowerCase().split('.').pop();
+  return ({ pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', txt: 'text/plain' })[extension] || '';
+}
+
+async function uploadProjectDocument(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = document.getElementById('portalDocumentSend');
+  const status = document.getElementById('portalDocumentStatus');
+  const code = document.getElementById('portalDocumentProject').value;
+  const file = document.getElementById('portalDocumentFile').files?.[0];
+  const title = safeText(document.getElementById('portalDocumentTitle').value);
+  const saved = releasedQuotes().find((row) => row.id === code);
+  if (!saved || !file) return;
+  const contentType = documentMime(file);
+  if (!contentType) { status.textContent = 'Esse formato de arquivo não é aceito.'; status.classList.add('error'); return; }
+  if (file.size <= 0 || file.size > maxDocumentBytes) { status.textContent = 'O arquivo deve ter até 15 MB.'; status.classList.add('error'); return; }
+  if (!confirm(`Enviar “${file.name}” e liberar para ${saved.q.client || 'o cliente'} consultar no portal?`)) return;
+  button.disabled = true;
+  status.classList.remove('error');
+  status.textContent = 'Preparando o envio privado…';
+  try {
+    if (!portalStorageClient) portalStorageClient = createClient(portalUrl, portalKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const prepared = await callFunction({ action: 'prepare_document_upload', code, title, fileName: file.name, contentType, size: file.size });
+    status.textContent = 'Enviando arquivo…';
+    const { error: uploadError } = await portalStorageClient.storage.from(documentBucket)
+      .uploadToSignedUrl(prepared.path, prepared.token, file, { contentType });
+    if (uploadError) throw uploadError;
+    await callFunction({ action: 'complete_document_upload', code, title, fileName: file.name, path: prepared.path });
+    status.textContent = 'Documento enviado e liberado para o cliente no portal.';
+    form.reset();
+    refreshDocumentProjectOptions();
+  } catch (error) {
+    status.textContent = error.message || 'Não foi possível enviar o documento.';
+    status.classList.add('error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
 async function loadSupportRequests() {
   const list = document.getElementById('portalSupportList');
   if (!list) return;
@@ -220,6 +319,7 @@ function mountExecutionControls() {
   firstCard.append(toolbar);
   document.getElementById('publishPortalProgress').addEventListener('click', publishExecution);
   supportPanel();
+  documentUploadPanel();
 }
 
 function bindQuoteActions() {
@@ -240,6 +340,8 @@ function init() {
   // separately validates the logged-in internal-team JWT.
   bindQuoteActions();
   mountExecutionControls();
+  const quotes = document.getElementById('savedQuotes');
+  if (quotes) new MutationObserver(refreshDocumentProjectOptions).observe(quotes, { childList: true, subtree: true });
 }
 
 document.addEventListener('DOMContentLoaded', init, { once: true });
