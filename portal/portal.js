@@ -12,6 +12,7 @@ const configWarning = $('configWarning');
 let client = null;
 let passwordRecoveryActive = false;
 let projectLoadGeneration = 0;
+let currentUser = null;
 
 function setMessage(id, message, isError = false) {
   const el = $(id);
@@ -73,6 +74,42 @@ function renderProject(project, updates, documents) {
   node.querySelector('[data-field="nextStep"]').textContent = project.next_step || 'A equipe atualizará em breve';
   node.querySelector('[data-field="expectedDate"]').textContent = formatDate(project.expected_date);
 
+  const proposal = project.approved_proposal;
+  if (proposal && typeof proposal === 'object') {
+    node.querySelector('[data-field="proposal"]').hidden = false;
+    const details = node.querySelector('[data-field="proposalDetails"]');
+    const summary = document.createElement('p');
+    summary.textContent = proposal.summary || 'Automação residencial Connect Plus';
+    details.append(summary);
+    const meta = document.createElement('div');
+    meta.className = 'proposal-meta';
+    for (const [label, value] of [['Nº da proposta', proposal.code], ['Data da proposta', formatDate(proposal.date)], ['Aprovada em', proposal.approvedAt], ['Validade', proposal.validity], ['Prazo estimado', proposal.deadline], ['Forma de pagamento', proposal.payment]]) {
+      if (!value) continue;
+      const item = document.createElement('p');
+      const strong = document.createElement('strong');
+      strong.textContent = `${label}: `;
+      item.append(strong, document.createTextNode(String(value)));
+      meta.append(item);
+    }
+    details.append(meta);
+    if (Array.isArray(proposal.items) && proposal.items.length) {
+      const list = document.createElement('div');
+      list.className = 'proposal-items';
+      for (const row of proposal.items) {
+        const item = document.createElement('p');
+        item.textContent = `${row.description} · ${row.quantity} × ${formatCurrency(row.unitPrice)} = ${formatCurrency(row.total)}`;
+        list.append(item);
+      }
+      details.append(list);
+    }
+    if (Number.isFinite(Number(proposal.total))) {
+      const total = document.createElement('p');
+      total.className = 'proposal-total';
+      total.textContent = `Total aprovado: ${formatCurrency(proposal.total)}`;
+      details.append(total);
+    }
+  }
+
   const updatesBox = node.querySelector('[data-field="updates"]');
   if (!updates.length) addEmpty(updatesBox, 'Nenhuma atualização publicada até o momento.');
   for (const update of updates) {
@@ -99,6 +136,59 @@ function renderProject(project, updates, documents) {
     docsBox.append(row);
   }
   $('projectList').append(node);
+  const form = node.querySelector('[data-field="supportForm"]');
+  form.addEventListener('submit', (event) => submitSupport(event, project.id, node));
+  loadSupportHistory(project.id, node);
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value) || 0);
+}
+
+async function loadSupportHistory(projectId, node) {
+  const { data, error } = await client.from('support_requests')
+    .select('subject, status, created_at').eq('project_id', projectId)
+    .eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(5);
+  const box = node.querySelector('[data-field="supportHistory"]');
+  box.replaceChildren();
+  if (error || !data?.length) return;
+  const title = document.createElement('h4');
+  title.textContent = 'Suas solicitações recentes';
+  box.append(title);
+  for (const request of data) {
+    const row = document.createElement('p');
+    row.textContent = `${request.subject} · ${request.status} · ${formatDate(request.created_at?.slice(0, 10))}`;
+    box.append(row);
+  }
+}
+
+async function submitSupport(event, projectId, node) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const values = new FormData(form);
+  const messageBox = node.querySelector('[data-field="supportMessage"]');
+  button.disabled = true;
+  messageBox.textContent = 'Enviando sua solicitação…';
+  messageBox.classList.remove('error');
+  try {
+    const { error } = await client.from('support_requests').insert({
+      project_id: projectId,
+      user_id: currentUser.id,
+      subject: String(values.get('subject') || '').trim(),
+      contact_phone: String(values.get('phone') || '').trim(),
+      message: String(values.get('message') || '').trim(),
+    });
+    if (error) throw error;
+    form.reset();
+    messageBox.textContent = 'Solicitação enviada. A equipe Connect Plus poderá acompanhar o atendimento.';
+    await loadSupportHistory(projectId, node);
+  } catch {
+    messageBox.textContent = 'Não foi possível enviar agora. Verifique sua conexão e tente novamente.';
+    messageBox.classList.add('error');
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function downloadDocument(doc, button) {
@@ -127,7 +217,7 @@ async function loadProjects(user) {
   $('welcome').textContent = 'Projetos liberados para você';
   const { data: memberships, error: membershipError } = await client
     .from('project_members')
-    .select('project_id, projects!inner(id, code, title, status, progress, next_step, expected_date)')
+    .select('project_id, projects!inner(id, code, title, status, progress, next_step, expected_date, approved_proposal)')
     .eq('user_id', user.id);
   if (membershipError) throw membershipError;
   if (requestGeneration !== projectLoadGeneration) return;
@@ -165,6 +255,7 @@ async function refreshSession() {
     return;
   }
   try {
+    currentUser = data.session.user;
     showDashboard(data.session.user.email);
     await loadProjects(data.session.user);
   } catch {

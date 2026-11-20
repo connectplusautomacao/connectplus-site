@@ -73,3 +73,20 @@ body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 25%,#ff
   .dashboard-sub{font-size:14px}
   .page-footer{align-items:flex-start;gap:8px}
 }
+/* Proposal approved snapshot and client support form */
+.client-proposal{margin:1.5rem 0;padding:1.25rem;border:1px solid #cfe1f2;border-radius:16px;background:linear-gradient(135deg,#f4faff,#fff)}
+.client-proposal h3,.support-section h3{margin-top:0}
+.proposal-details p{margin:.45rem 0;line-height:1.55}
+.proposal-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.2rem 1rem;margin:.8rem 0}
+.proposal-items{border-top:1px solid #dbe7f2;margin-top:.8rem;padding-top:.5rem}
+.proposal-total{font-size:1.1rem;font-weight:800;color:#0879d8}
+.support-section{margin-top:1.75rem;padding:1.25rem;border:1px solid #d6e3ef;border-radius:16px;background:#f8fbff}
+.support-form{display:grid;gap:.85rem;max-width:720px}
+.support-form label{display:grid;gap:.4rem;font-weight:600;color:#17365e}
+.support-form input,.support-form select,.support-form textarea{width:100%;padding:.75rem;border:1px solid #c9d9e9;border-radius:10px;background:#fff;color:#102a4c;font:inherit}
+.support-form textarea{resize:vertical}
+.support-form .button{justify-self:start}
+.support-history{margin-top:1rem;color:#47617d}
+.support-history p{padding:.65rem 0;border-bottom:1px solid #e0eaf3}
+.support-section .message.error{color:#b42318}
+@media(max-width:600px){.support-section,.client-proposal{padding:1rem}.proposal-meta{grid-template-columns:1fr}}
