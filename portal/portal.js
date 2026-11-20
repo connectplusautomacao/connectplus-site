@@ -10,6 +10,8 @@ const resetCard = $('resetCard');
 const dashboard = $('dashboard');
 const configWarning = $('configWarning');
 let client = null;
+let passwordRecoveryActive = false;
+let projectLoadGeneration = 0;
 
 function setMessage(id, message, isError = false) {
   const el = $(id);
@@ -27,6 +29,17 @@ function showLogin() {
   dashboard.classList.add('hidden');
 }
 
+function showPasswordReset() {
+  loginCard.classList.add('hidden');
+  dashboard.classList.add('hidden');
+  resetCard.classList.remove('hidden');
+}
+
+function hasPasswordRecoveryUrl() {
+  const params = new URLSearchParams(location.search);
+  return params.get('flow') === 'password-recovery' || location.hash.includes('type=recovery');
+}
+
 function showDashboard(email) {
   loginCard.classList.add('hidden');
   resetCard.classList.add('hidden');
@@ -41,6 +54,8 @@ function formatDate(value) {
 }
 
 function addEmpty(container, message) {
+  // Auth can emit overlapping session events; keep each empty state single.
+  if (container.querySelector('.empty')) return;
   const box = document.createElement('div');
   box.className = 'empty';
   box.textContent = message;
@@ -107,6 +122,7 @@ async function downloadDocument(doc, button) {
 }
 
 async function loadProjects(user) {
+  const requestGeneration = ++projectLoadGeneration;
   $('projectList').replaceChildren();
   $('welcome').textContent = 'Projetos liberados para você';
   const { data: memberships, error: membershipError } = await client
@@ -114,6 +130,7 @@ async function loadProjects(user) {
     .select('project_id, projects!inner(id, code, title, status, progress, next_step, expected_date)')
     .eq('user_id', user.id);
   if (membershipError) throw membershipError;
+  if (requestGeneration !== projectLoadGeneration) return;
   const projects = (memberships || []).map((m) => m.projects).filter(Boolean);
   if (!projects.length) {
     addEmpty($('projectList'), 'Nenhum projeto foi liberado para esta conta. Se precisar de ajuda, fale com a Connect Plus.');
@@ -125,6 +142,7 @@ async function loadProjects(user) {
       client.from('project_documents').select('title, file_name, storage_path').eq('project_id', project.id).eq('visible_to_client', true).order('created_at', { ascending: false }),
     ]);
     if (updatesError || docsError) throw updatesError || docsError;
+    if (requestGeneration !== projectLoadGeneration) return;
     renderProject(project, updates || [], docs || []);
   }
 }
@@ -135,6 +153,11 @@ function showError(message) {
 }
 
 async function refreshSession() {
+  if (passwordRecoveryActive || hasPasswordRecoveryUrl()) {
+    passwordRecoveryActive = true;
+    showPasswordReset();
+    return;
+  }
   if (!configured()) return;
   const { data, error } = await client.auth.getSession();
   if (error || !data.session) {
@@ -151,12 +174,8 @@ async function refreshSession() {
 }
 
 async function init() {
-  const params = new URLSearchParams(location.search);
-  const isRecoveryFlow = params.get('flow') === 'password-recovery' || location.hash.includes('type=recovery');
-  if (isRecoveryFlow) {
-    loginCard.classList.add('hidden');
-    resetCard.classList.remove('hidden');
-  }
+  passwordRecoveryActive = hasPasswordRecoveryUrl();
+  if (passwordRecoveryActive) showPasswordReset();
   if (!configured()) {
     configWarning.classList.remove('hidden');
     $('loginButton').disabled = true;
@@ -167,16 +186,23 @@ async function init() {
   client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
   });
-  if (!isRecoveryFlow) await refreshSession();
   client.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') showLogin();
-    if (event === 'SIGNED_IN' && session) setTimeout(() => refreshSession(), 0);
     if (event === 'PASSWORD_RECOVERY') {
-      loginCard.classList.add('hidden');
-      dashboard.classList.add('hidden');
-      resetCard.classList.remove('hidden');
+      passwordRecoveryActive = true;
+      showPasswordReset();
+      return;
     }
+    if (passwordRecoveryActive) {
+      showPasswordReset();
+      return;
+    }
+    if (event === 'SIGNED_OUT') {
+      projectLoadGeneration++;
+      showLogin();
+    }
+    if (event === 'SIGNED_IN' && session) setTimeout(() => refreshSession(), 0);
   });
+  if (!passwordRecoveryActive) await refreshSession();
 }
 
 $('loginForm').addEventListener('submit', async (event) => {
@@ -231,6 +257,8 @@ $('resetForm').addEventListener('submit', async (event) => {
     if (error) throw error;
     $('newPassword').value = '';
     setMessage('resetMessage', 'Senha atualizada. Entre novamente com sua nova senha.');
+    passwordRecoveryActive = false;
+    history.replaceState(null, '', location.pathname);
     await client.auth.signOut();
     showLogin();
   } catch {
