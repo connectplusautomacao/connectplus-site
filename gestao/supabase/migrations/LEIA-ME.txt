@@ -1,0 +1,57 @@
+CONNECT PLUS | GESTÃO ONLINE
+============================
+
+Esta é uma cópia independente da plataforma interna aprovada. O arquivo
+ConnectPlus_Plataforma.html original continua preservado. O portal do cliente
+e o projeto Supabase dele também permanecem separados.
+
+O QUE ESTÁ PRONTO
+- A plataforma aprovada em uma pasta própria, com o mesmo conteúdo e recursos.
+- Tela de login sem cadastro público.
+- Proteção de dados por Supabase Auth e políticas RLS no banco.
+- Sincronização online com controle de revisão para evitar sobrescrita silenciosa.
+- Importação inicial dos dados locais somente após baixar um backup.
+- Cópia de recuperação local mantida no navegador.
+
+ANTES DE PUBLICAR
+1. Crie um NOVO projeto Supabase, exclusivo para a gestão interna. Não reutilize
+   o projeto reservado ao portal do cliente.
+2. No projeto novo, crie o usuário proprietário em Authentication > Users,
+   usando connectplusautomacao26@gmail.com e uma senha forte. Não habilite
+   cadastro público.
+3. Abra SQL Editor, cole o conteúdo de:
+   supabase/migrations/202611200001_gestao_internal.sql
+   e execute. A consulta final deve mostrar a conta como owner.
+4. Em supabase-config.js, substitua os dois valores de exemplo pela URL e pela
+   chave publicável (publishable/anon) do NOVO projeto. Nunca use service_role.
+5. No Supabase > Authentication > URL Configuration, defina Site URL e Redirect
+   URL para a página publicada, por exemplo:
+   https://connectplusautomacao.github.io/connectplus-site/gestao/
+6. Publique todo o conteúdo desta pasta dentro da pasta /gestao/ do repositório
+   do site: index.html, auth.js, supabase-config.js e a pasta supabase.
+   Não substitua os arquivos do site nem do portal.
+7. Acesse /gestao/. Entre com a conta proprietária. Na primeira importação, baixe
+   o backup oferecido antes de enviar os dados existentes deste notebook.
+
+CADASTRAR OUTROS MEMBROS
+Crie a conta em Authentication > Users e adicione uma linha em
+public.company_members pelo Table Editor. O papel technician não tem acesso aos
+dados financeiros no estado atual. Somente owner/admin podem abrir a plataforma.
+Não compartilhe a senha do proprietário com a equipe.
+
+SEGURANÇA E LIMITES
+- A URL e a chave publicável aparecem no código do site; isso é esperado. O
+  acesso aos dados depende de autenticação e RLS no Supabase.
+- Não publique chave service_role, senha ou segredo de administrador.
+- Enquanto o endereço do projeto e sua chave publicável não forem configurados,
+  o login não funcionará.
+- O app ainda mantém uma cópia local no navegador. Faça downloads de backup
+  periódicos e guarde-os em local protegido.
+- Como o site atual usa GitHub Pages, os arquivos da aplicação são públicos;
+  dados permanecem protegidos no Supabase pelas políticas desta migração.
+
+ARQUIVOS
+- index.html: cópia da plataforma Connect Plus aprovada, isolada nesta pasta.
+- auth.js: login, importação inicial e sincronização protegida.
+- supabase-config.js: configuração pública do projeto separado.
+- supabase/migrations/: tabelas e políticas de segurança.
