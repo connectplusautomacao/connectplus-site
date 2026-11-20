@@ -54,9 +54,9 @@
   <section id="resetCard" class="card login reset-card hidden">
     <div class="login-mark" aria-hidden="true"><img src="../favicon-connectplus-transparente.png" alt=""></div>
     <p class="eyebrow">SEGURANÇA DA CONTA</p>
-    <h2>Redefinir senha</h2>
-    <p class="sub">Informe sua nova senha para continuar.</p>
-    <form id="resetForm"><div class="field"><label for="newPassword">Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required placeholder="Mínimo de 12 caracteres"></div><button class="button full" type="submit">Salvar nova senha <span aria-hidden="true">→</span></button></form>
+    <h2 id="resetTitle">Redefinir senha</h2>
+    <p id="resetDescription" class="sub">Informe sua nova senha para continuar.</p>
+    <form id="resetForm"><div class="field"><label for="newPassword">Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required placeholder="Mínimo de 12 caracteres"></div><button id="resetButton" class="button full" type="submit">Salvar nova senha <span aria-hidden="true">→</span></button></form>
     <p id="resetMessage" class="message" role="status" aria-live="polite"></p>
   </section>
   <section id="dashboard" class="dashboard-shell hidden">

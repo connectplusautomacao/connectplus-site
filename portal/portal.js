@@ -11,6 +11,7 @@ const dashboard = $('dashboard');
 const configWarning = $('configWarning');
 let client = null;
 let passwordRecoveryActive = false;
+let firstAccessInviteActive = false;
 let projectLoadGeneration = 0;
 let currentUser = null;
 
@@ -34,11 +35,28 @@ function showPasswordReset() {
   loginCard.classList.add('hidden');
   dashboard.classList.add('hidden');
   resetCard.classList.remove('hidden');
+  updatePasswordScreen();
 }
 
 function hasPasswordRecoveryUrl() {
   const params = new URLSearchParams(location.search);
-  return params.get('flow') === 'password-recovery' || location.hash.includes('type=recovery');
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+  return params.get('flow') === 'password-recovery'
+    || ['recovery', 'invite'].includes(hashParams.get('type'));
+}
+
+function isFirstAccessInvite() {
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+  return firstAccessInviteActive || hashParams.get('type') === 'invite';
+}
+
+function updatePasswordScreen() {
+  const firstAccess = isFirstAccessInvite();
+  $('resetTitle').textContent = firstAccess ? 'Criar senha de acesso' : 'Redefinir senha';
+  $('resetDescription').textContent = firstAccess
+    ? 'Defina uma senha pessoal para acompanhar seu projeto.'
+    : 'Informe sua nova senha para continuar.';
+  $('resetButton').textContent = firstAccess ? 'Criar minha senha' : 'Salvar nova senha';
 }
 
 function showDashboard(email) {
@@ -265,6 +283,7 @@ async function refreshSession() {
 }
 
 async function init() {
+  firstAccessInviteActive = isFirstAccessInvite();
   passwordRecoveryActive = hasPasswordRecoveryUrl();
   if (passwordRecoveryActive) showPasswordReset();
   if (!configured()) {
@@ -338,6 +357,7 @@ $('forgotPassword').addEventListener('click', async () => {
 $('resetForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!client) return;
+  const firstAccess = isFirstAccessInvite();
   const password = $('newPassword').value;
   if (password.length < 12) {
     setMessage('resetMessage', 'Use uma senha com pelo menos 12 caracteres.', true);
@@ -347,7 +367,11 @@ $('resetForm').addEventListener('submit', async (event) => {
     const { error } = await client.auth.updateUser({ password });
     if (error) throw error;
     $('newPassword').value = '';
-    setMessage('resetMessage', 'Senha atualizada. Entre novamente com sua nova senha.');
+    setMessage('loginMessage', firstAccess
+      ? 'Senha criada. Entre no portal com seu e-mail e a nova senha.'
+      : 'Senha atualizada. Entre novamente com sua nova senha.');
+    setMessage('resetMessage', '');
+    firstAccessInviteActive = false;
     passwordRecoveryActive = false;
     history.replaceState(null, '', location.pathname);
     await client.auth.signOut();
