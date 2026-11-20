@@ -1,23 +1,73 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="theme-color" content="#07172f">
 <title>Connect Plus | Portal do Cliente</title>
 <link rel="stylesheet" href="portal.css">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script defer src="portal.js"></script>
 </head>
 <body>
-<header class="top"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 30 32 9l24 21M14 28v27h36V28M24 42a12 12 0 0 1 16 0M28 47a6 6 0 0 1 8 0M32 52h.1M51 10v13M45 16.5h13" fill="none" stroke="#00bfd6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="brand"><b>Connect <span>Plus</span></b><small>AUTOMAÇÃO RESIDENCIAL</small></div><div class="top-right">PORTAL DO CLIENTE<br><span>Consulta privada do projeto</span></div></header>
+<header class="top">
+  <div class="top-inner">
+    <img class="brand-logo" src="../ConnectPlus_Logo_Horizontal_Site.png" alt="Connect Plus Automação Residencial">
+    <div class="top-divider" aria-hidden="true"></div>
+    <p class="brand-slogan">Tecnologia que<br><strong>se adapta a você.</strong></p>
+    <div class="top-right"><span>ÁREA DO CLIENTE</span><strong>Seu projeto, sempre por perto</strong></div>
+  </div>
+</header>
 <main class="wrap">
-<div id="configWarning" class="notice hidden" role="status">O portal ainda não foi conectado ao banco de dados. Acesse o guia de configuração para concluir a integração. Nenhum dado de cliente será mostrado até a configuração estar pronta.</div>
-<section id="loginCard" class="card login"><div class="lock" aria-hidden="true">⌑</div><h1>Acompanhe seu projeto</h1><p class="sub">Entre com os dados de acesso enviados pela Connect Plus.</p><form id="loginForm"><div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required maxlength="254"></div><div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required maxlength="128"></div><button id="loginButton" class="button full" type="submit">Entrar com segurança</button></form><button id="forgotPassword" class="link-button" type="button">Esqueci minha senha</button><p id="loginMessage" class="message" role="status" aria-live="polite"></p><p class="hint">Acesso individual. Cada cliente pode consultar somente projetos liberados para sua conta.</p></section>
-<section id="resetCard" class="card login hidden"><h1>Redefinir senha</h1><p class="sub">Informe e confirme sua nova senha.</p><form id="resetForm"><div class="field"><label for="newPassword">Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></div><button class="button full" type="submit">Salvar nova senha</button></form><p id="resetMessage" class="message" role="status" aria-live="polite"></p></section>
-<section id="dashboard" class="hidden"><div class="card"><div class="dash-head"><div><span id="projectStatus" class="pill">Projeto</span><h1 id="welcome">Seus projetos</h1><p id="userEmail" class="sub"></p></div><button id="logoutButton" class="button secondary" type="button">Sair</button></div></div><div id="projectList" class="project-list"></div><p class="foot">Connect Plus Automação Residencial · Salvador/BA</p></section>
+  <div id="configWarning" class="notice hidden" role="status">O portal ainda não foi conectado ao banco de dados. Acesse o guia de configuração para concluir a integração. Nenhum dado de cliente será mostrado até a configuração estar pronta.</div>
+  <section id="loginCard" class="login-layout">
+    <div class="welcome-panel">
+      <div class="welcome-copy">
+        <span class="eyebrow-light"><i></i> CONNECT PLUS · PORTAL DO CLIENTE</span>
+        <h1>Uma nova forma de acompanhar sua casa inteligente.</h1>
+        <p>Veja o andamento do projeto, acompanhe as próximas etapas e acesse os documentos liberados pela nossa equipe.</p>
+      </div>
+      <div class="welcome-bottom">
+        <div class="welcome-feature"><span class="feature-icon" aria-hidden="true">01</span><div><strong>Acompanhamento claro</strong><small>Etapas e atualizações do seu projeto.</small></div></div>
+        <div class="welcome-feature"><span class="feature-icon" aria-hidden="true">02</span><div><strong>Acesso individual</strong><small>Informações disponíveis somente para sua conta.</small></div></div>
+      </div>
+      <span class="orb orb-one" aria-hidden="true"></span><span class="orb orb-two" aria-hidden="true"></span>
+    </div>
+    <section class="card login">
+      <div class="login-mark" aria-hidden="true"><img src="../favicon-connectplus-transparente.png" alt=""></div>
+      <p class="eyebrow">BEM-VINDO(A)</p>
+      <h2>Acompanhe seu projeto</h2>
+      <p class="sub">Entre com os dados de acesso enviados pela Connect Plus.</p>
+      <form id="loginForm">
+        <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required maxlength="254" placeholder="seuemail@exemplo.com"></div>
+        <div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required maxlength="128" placeholder="Digite sua senha"></div>
+        <button id="loginButton" class="button full" type="submit">Entrar no portal <span aria-hidden="true">→</span></button>
+      </form>
+      <button id="forgotPassword" class="link-button" type="button">Esqueci minha senha</button>
+      <p id="loginMessage" class="message" role="status" aria-live="polite"></p>
+      <div class="login-security"><span aria-hidden="true">▣</span> Acesso protegido e individual</div>
+    </section>
+  </section>
+  <section id="resetCard" class="card login reset-card hidden">
+    <div class="login-mark" aria-hidden="true"><img src="../favicon-connectplus-transparente.png" alt=""></div>
+    <p class="eyebrow">SEGURANÇA DA CONTA</p>
+    <h2>Redefinir senha</h2>
+    <p class="sub">Informe sua nova senha para continuar.</p>
+    <form id="resetForm"><div class="field"><label for="newPassword">Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required placeholder="Mínimo de 12 caracteres"></div><button class="button full" type="submit">Salvar nova senha <span aria-hidden="true">→</span></button></form>
+    <p id="resetMessage" class="message" role="status" aria-live="polite"></p>
+  </section>
+  <section id="dashboard" class="dashboard-shell hidden">
+    <div class="dashboard-banner"><div><span class="eyebrow-light"><i></i> ÁREA DO CLIENTE</span><h1 id="welcome">Seus projetos</h1><p class="dashboard-sub">Acompanhe o andamento e as novidades do seu projeto.</p></div><button id="logoutButton" class="button secondary" type="button">Sair</button><div class="banner-orb" aria-hidden="true"></div></div>
+    <div class="dashboard-account"><span class="account-dot"></span><span>Conta conectada</span><strong id="userEmail"></strong></div>
+    <div id="projectList" class="project-list"></div>
+    <p class="foot">Connect Plus Automação Residencial <span>·</span> Salvador/BA</p>
+  </section>
 </main>
-<template id="projectTemplate"><article class="project card"><div class="project-head"><div><p class="eyebrow">PROJETO <span data-field="code"></span></p><h2 data-field="title"></h2></div><span class="pill" data-field="status"></span></div><div class="summary"><div class="metric"><small>Andamento</small><strong data-field="progress"></strong><div class="progress"><i data-field="progressBar"></i></div></div><div class="metric"><small>Próxima etapa</small><strong data-field="nextStep"></strong></div><div class="metric"><small>Previsão informada</small><strong data-field="expectedDate"></strong></div></div><h3>Atualizações</h3><div class="updates" data-field="updates"></div><h3>Documentos liberados</h3><div class="documents" data-field="documents"></div></article></template>
+<footer class="page-footer"><span>CONNECT PLUS</span><span>Automação residencial com acompanhamento de ponta a ponta</span></footer>
+<template id="projectTemplate"><article class="project card"><div class="project-head"><div><p class="eyebrow">SEU PROJETO <span data-field="code"></span></p><h2 data-field="title"></h2></div><span class="pill" data-field="status"></span></div><div class="summary"><div class="metric"><small>Andamento</small><strong data-field="progress"></strong><div class="progress"><i data-field="progressBar"></i></div></div><div class="metric"><small>Próxima etapa</small><strong data-field="nextStep"></strong></div><div class="metric"><small>Previsão informada</small><strong data-field="expectedDate"></strong></div></div><h3>Atualizações</h3><div class="updates" data-field="updates"></div><h3>Documentos liberados</h3><div class="documents" data-field="documents"></div></article></template>
 <template id="updateTemplate"><div class="update"><strong data-field="title"></strong><p data-field="message"></p><small data-field="date"></small></div></template>
 <dialog id="errorDialog" class="dialog"><form method="dialog"><h2>Não foi possível carregar</h2><p id="errorText"></p><button class="button">Fechar</button></form></dialog>
-</body></html>
+</body>
+</html>
