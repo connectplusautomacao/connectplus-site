@@ -34,3 +34,42 @@ body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 25%,#ff
 .dialog{max-width:450px;border:1px solid var(--line);border-radius:18px;padding:24px 26px;box-shadow:0 18px 70px #07172f38}.dialog::backdrop{background:#061326a8;backdrop-filter:blur(4px)}.dialog h2{color:var(--navy);font-size:19px}.dialog p{color:var(--muted);font-size:13px}
 @media(max-width:850px){.top-inner{min-height:88px;padding:14px 20px;gap:17px}.brand-logo{height:52px;max-width:260px}.wrap{margin-top:34px;padding:0 20px 28px}.login-layout{grid-template-columns:1fr;max-width:650px}.welcome-panel{min-height:360px;padding:38px}.welcome-panel h1{font-size:38px}.welcome-bottom{grid-template-columns:1fr 1fr;gap:12px}.login{max-width:none}.dashboard-banner{padding:32px}.project{padding:24px}}
 @media(max-width:560px){.top-inner{flex-wrap:wrap;gap:12px;min-height:80px}.brand-logo{height:43px;max-width:230px}.top-divider{height:34px}.brand-slogan{font-size:10px}.brand-slogan strong{font-size:11px}.top-right{width:100%;margin:3px 0 0 55px;text-align:left}.top-right span{font-size:9px}.top-right strong{font-size:11px}.wrap{margin-top:22px;padding:0 14px 22px}.welcome-panel{min-height:0;padding:30px 25px;border-radius:20px}.welcome-panel h1{margin:20px 0 12px;font-size:34px}.welcome-panel p{font-size:13px}.welcome-bottom{grid-template-columns:1fr;gap:12px;margin-top:27px}.welcome-feature small{font-size:10px}.login{padding:29px 24px;border-radius:20px}.login h2,.reset-card h2{font-size:24px}.dashboard-banner{align-items:flex-start;min-height:190px;padding:27px 24px;border-radius:20px}.dashboard-banner .button{min-height:40px;padding:8px 12px}.dashboard-banner h1{font-size:30px}.dashboard-sub{max-width:245px;font-size:11px}.dashboard-account{align-items:flex-start;flex-wrap:wrap}.dashboard-account strong{width:100%;margin:0 0 0 16px}.project{padding:22px 19px}.project-head{align-items:flex-start;flex-direction:column}.summary{grid-template-columns:1fr;gap:9px;margin:17px 0 4px}.metric{padding:13px}.document{align-items:flex-start;flex-direction:column}.page-footer{padding:13px 18px 22px;flex-direction:column;gap:4px}.reset-card{margin:20px 14px;padding:27px 23px}}
+
+/* Ajustes de legibilidade e assinatura completa da marca no rodapé */
+.eyebrow,.eyebrow-light{font-size:12px;line-height:1.5}
+.welcome-feature strong{font-size:15px}
+.welcome-feature small{font-size:13px;line-height:1.5}
+.field label{font-size:14px}
+.field input::placeholder{font-size:14px}
+.sub{font-size:15px}
+.button{font-size:14px}
+.top-right span{font-size:12px}
+.top-right strong{font-size:14px}
+.brand-slogan{font-size:14px}
+.brand-slogan strong{font-size:16px}
+.dashboard-sub{font-size:15px}
+.dashboard-account{font-size:13px}
+.dashboard-account strong{font-size:14px}
+.project h3{font-size:15px}
+.pill{font-size:12px}
+.metric small{font-size:12px}
+.metric strong{font-size:15px}
+.update strong,.update p{font-size:14px}
+.update small{font-size:12px}
+.document,.empty,.notice{font-size:14px}
+.dialog p{font-size:15px}
+.page-footer{align-items:center;color:#536982;font-size:14px;line-height:1.5}
+.footer-brand{display:grid;gap:2px;color:#173555;letter-spacing:0}
+.footer-brand strong{font-size:16px;font-weight:800;letter-spacing:.01em}
+.footer-brand small{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#536982}
+.footer-description{font-size:14px;color:#536982}
+@media(max-width:560px){
+  .top-right span{font-size:12px}
+  .top-right strong{font-size:14px}
+  .brand-slogan{font-size:12px}
+  .brand-slogan strong{font-size:13px}
+  .welcome-panel p{font-size:15px}
+  .welcome-feature small{font-size:13px}
+  .dashboard-sub{font-size:14px}
+  .page-footer{align-items:flex-start;gap:8px}
+}
