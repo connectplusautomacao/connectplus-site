@@ -200,6 +200,13 @@ if (!cfg.url || cfg.url.includes('COLE_') || !cfg.publishableKey || cfg.publisha
   showGate(); say('A conexão segura ainda precisa ser configurada com o projeto Supabase exclusivo da plataforma interna.', true);
 } else {
   supabase = createClient(cfg.url, cfg.publishableKey);
+  // Expose only the active staff session token to the portal bridge. The portal
+  // Edge Function independently verifies this token and the owner/admin role.
+  window.__getInternalAccessToken = async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return data.session?.access_token || null;
+  };
   showGate();
   supabase.auth.getSession().then(({ data }) => data.session ? loadSecureState() : say('Entre com a conta da equipe autorizada.'));
   supabase.auth.onAuthStateChange((event, session) => {
