@@ -92,3 +92,8 @@ body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 25%,#ff
 @media(max-width:600px){.support-section,.client-proposal{padding:1rem}.proposal-meta{grid-template-columns:1fr}}
 
 .app-home-link{display:inline-flex;align-items:center;justify-content:center;justify-self:end;padding:8px 12px;border:1px solid #b8d8f3;border-radius:10px;background:#fff;color:#0b2342;text-decoration:none;font-weight:700;font-size:13px}.app-home-link:hover{background:#edf7ff}@media(max-width:680px){.top-right .app-home-link{justify-self:start;margin-bottom:6px}}
+
+/* Logo em conjunto compacto: símbolo e nome alinhados lado a lado. */
+.brand-lockup{display:inline-flex;align-items:center;gap:11px;flex:none;text-decoration:none;color:inherit}.brand-symbol{display:block;width:54px;height:54px;flex:none}.brand-name{display:grid;gap:4px;line-height:1}.brand-name strong{font-size:25px;font-weight:850;letter-spacing:-.045em;color:#fff;white-space:nowrap}.brand-name strong em{color:#09b6e8;font-style:normal}.brand-name small{font-size:9px;font-weight:800;letter-spacing:.19em;color:#dce9f6;white-space:nowrap}
+@media(max-width:850px){.brand-symbol{width:48px;height:48px}.brand-name strong{font-size:22px}.brand-name small{font-size:8px}}
+@media(max-width:560px){.brand-lockup{gap:8px}.brand-symbol{width:42px;height:42px}.brand-name strong{font-size:19px}.brand-name small{font-size:7px;letter-spacing:.15em}}
