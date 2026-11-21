@@ -9,6 +9,7 @@ const localKey = 'connectplus-platform-v1';
 const recoveryKey = 'connectplus-platform-v1-recovery';
 let supabase, currentRevision = null, pendingState = null, saveTimer = null, saveChain = Promise.resolve();
 let loadingState = false;
+let passwordRecoveryActive = false;
 
 function say(text, error = false) {
   msg.textContent = text;
@@ -108,19 +109,22 @@ function askResolveConflict(localData, cloudState) {
 }
 
 async function loadSecureState() {
-  if (loadingState) return;
+  if (passwordRecoveryActive || loadingState) return;
   loadingState = true;
   try {
   say('Verificando sua conta e carregando os dados…');
   const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (passwordRecoveryActive) return;
   if (userError || !userData.user) return showGate();
   const { data: member, error: memberError } = await supabase.from('company_members').select('role,active').eq('user_id', userData.user.id).maybeSingle();
+  if (passwordRecoveryActive) return;
   if (memberError || !member?.active || !['owner','admin'].includes(member.role)) {
     await supabase.auth.signOut();
     showGate();
     return say('Esta conta não tem acesso autorizado à plataforma interna. Peça ao administrador para liberar o usuário.', true);
   }
   const { data: state, error } = await supabase.from('internal_app_state').select('data,revision').eq('id','connectplus').maybeSingle();
+  if (passwordRecoveryActive) return;
   if (error) {
     showGate();
     return say('Não foi possível carregar os dados. Confira se o projeto interno e as permissões foram configurados.', true);
@@ -174,6 +178,7 @@ async function loadSecureState() {
   };
   document.getElementById('cloudAccount').textContent = userData.user.email || 'Conta autorizada';
   document.getElementById('cloudSignOut').onclick = async () => { await supabase.auth.signOut(); location.reload(); };
+  if (passwordRecoveryActive) return;
   showApp();
   } finally { loadingState = false; }
 }
@@ -211,6 +216,8 @@ if (!cfg.url || cfg.url.includes('COLE_') || !cfg.publishableKey || cfg.publisha
   supabase.auth.getSession().then(({ data }) => data.session ? loadSecureState() : say('Entre com a conta da equipe autorizada.'));
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
+      passwordRecoveryActive = true;
+      showGate();
       document.getElementById('loginForm').hidden = true;
       document.getElementById('forgotPassword').hidden = true;
       document.getElementById('resetPasswordForm').hidden = false;
@@ -227,6 +234,10 @@ document.getElementById('resetPasswordForm').addEventListener('submit', async (e
   if (password.length < 10) return say('Use uma senha com pelo menos 10 caracteres.', true);
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return say(`Não foi possível atualizar a senha: ${error.message}`, true);
+  passwordRecoveryActive = false;
+  document.getElementById('resetPasswordForm').hidden = true;
+  document.getElementById('loginForm').hidden = false;
+  document.getElementById('forgotPassword').hidden = false;
   say('Senha atualizada. Entrando na plataforma…');
   await loadSecureState();
 });
