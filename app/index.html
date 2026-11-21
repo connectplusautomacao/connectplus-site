@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07172f">
+  <meta name="description" content="Acesse com segurança sua área Connect Plus.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Connect Plus | Acesso seguro</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/connectplus-192.png">
+  <link rel="apple-touch-icon" href="./icons/connectplus-192.png">
+  <link rel="stylesheet" href="./app.css">
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="brand">
+      <img src="./icons/connectplus-192.png" alt="" width="58" height="58">
+      <span class="brand-copy"><strong>Connect <i>Plus</i></strong><small>AUTOMAÇÃO RESIDENCIAL</small></span>
+    </header>
+    <section class="welcome" aria-labelledby="title">
+      <span class="eyebrow"><span></span> ACESSO SEGURO</span>
+      <h1 id="title">Sua Connect Plus, sempre por perto.</h1>
+      <p>Escolha sua área para continuar. Cada acesso mostra somente as informações autorizadas para sua conta.</p>
+      <nav class="access-list" aria-label="Escolha sua área">
+        <a class="access-card team" href="../gestao/">
+          <span class="access-icon" aria-hidden="true">CP</span>
+          <span class="access-copy"><strong>Área da equipe</strong><small>Orçamentos, projetos e atendimento</small></span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </a>
+        <a class="access-card client" href="../portal/">
+          <span class="access-icon home-icon" aria-hidden="true">⌂</span>
+          <span class="access-copy"><strong>Área do cliente</strong><small>Projeto, documentos e suporte</small></span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </a>
+      </nav>
+      <button id="installButton" class="install-button" type="button" hidden>Instalar aplicativo</button>
+      <p id="installHint" class="install-hint">No celular, use o menu do navegador e escolha <strong>Instalar aplicativo</strong> ou <strong>Adicionar à tela inicial</strong>.</p>
+    </section>
+    <footer><span class="secure"><b aria-hidden="true">✓</b> Acesso individual e protegido</span><span>Connect Plus · Salvador/BA</span></footer>
+  </main>
+</body>
+</html>
