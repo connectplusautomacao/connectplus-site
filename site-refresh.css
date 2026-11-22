@@ -132,9 +132,9 @@ footer{gap:24px;padding:28px clamp(18px,6vw,88px);border-top:1px solid var(--cp-
 .header nav a{font-size:clamp(12px,.9vw,14px);color:#f3f2ef}
 .header nav a:first-child{color:var(--cp-gold);position:relative}
 .header nav a:first-child::after{content:"";position:absolute;left:0;right:0;bottom:-12px;height:2px;background:var(--cp-gold)}
-.header-social{display:none}
-.header-actions .whatsapp-btn{background:var(--cp-cyan)!important;color:#06111c!important;border-radius:999px;padding:13px 20px;box-shadow:0 8px 24px rgba(8,201,229,.16)}
-.header-actions .whatsapp-btn:hover{background:#35d9ec!important}
+.header-social{display:inline-grid;place-items:center}
+.header-actions .whatsapp-btn{background:#12c759!important;color:#fff!important;border-radius:999px;padding:13px 20px;box-shadow:0 8px 24px rgba(18,199,89,.18)}
+.header-actions .whatsapp-btn:hover{background:#0faf4e!important;color:#fff!important}
 .hero{position:relative;isolation:isolate;min-height:650px;height:min(72vh,780px);display:flex;align-items:center;background-image:linear-gradient(90deg,rgba(13,9,8,.91) 0%,rgba(13,9,8,.72) 34%,rgba(13,9,8,.18) 68%,rgba(13,9,8,.03) 100%),url('connectplus-hero-elegancia-2026.webp');background-position:center;background-size:cover;border-bottom:1px solid rgba(239,198,111,.24)}
 .hero::after{z-index:-1;height:112px;background:linear-gradient(0deg,rgba(10,8,8,.52),transparent)}
 .hero-content{width:min(100%,790px);max-width:790px;padding:70px clamp(24px,7vw,108px)}
