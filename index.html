@@ -33,7 +33,8 @@ function gtag_report_conversion(url) {
 <meta name="description" content="Automação residencial premium em Salvador - BA e Região.">
 <link rel="stylesheet" href="style.css?v=20261121-premium">
 <link rel="preload" as="image" href="connectplus-hero-elegancia-2026.webp">
-<link rel="stylesheet" href="site-refresh.css?v=20261122-cards-alexa-name">
+<link rel="stylesheet" href="site-refresh.css?v=20261122-service-icons-svg">
+<link rel="stylesheet" href="interactive-scenes.css?v=20261122">
 </head>
 <body id="inicio">
 <header class="header">
@@ -116,38 +117,38 @@ function gtag_report_conversion(url) {
   <div class="services-grid">
 
     <article class="service-card">
-      <span class="service-icon">✦</span>
+      <span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6m-5 3h4m-5-6.2a7 7 0 1 1 6 0c-.8.6-1 1.2-1 2.2h-4c0-1-.2-1.6-1-2.2Z"/><path d="M12 3v1m7 7h1M4 11H3m14-5 1-1M6 6 5 5"/></svg></span>
       <h3>ILUMINAÇÃO INTELIGENTE</h3>
       <p>Crie ambientes perfeitos para cada momento.</p>
     </article>
 
     <article class="service-card">
-      <span class="service-icon">♫</span>
+      <span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="11" height="16" rx="2"/><circle cx="9.5" cy="14.5" r="3"/><path d="M18 8c1.5 1 2.2 2.3 2.2 4S19.5 15 18 16m-1.5-6c.8.5 1.2 1.2 1.2 2s-.4 1.5-1.2 2"/></svg></span>
       <h3>SONORIZAÇÃO RESIDENCIAL</h3>
       <p>Entretenimento e qualidade sonora em todos os ambientes.</p>
     </article>
 
     <article class="service-card">
-      <span class="service-icon">▥</span>
+      <span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18M5 4v16m14-16v16M8 4v16m8-16v16M3 20h18"/><path d="M5 7 8 9m11-2-3 2M5 13l3 2m11-2-3 2"/></svg></span>
       <h3>CORTINAS AUTOMATIZADAS</h3>
       <p>Elegância e praticidade com um simples comando.</p>
     </article>
 
     <article class="service-card">
-      <span class="service-icon">♢</span>
+      <span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 4v3"/><circle cx="12" cy="14" r=".6" fill="currentColor"/></svg></span>
       <h3>FECHADURAS DIGITAIS</h3>
 <p>Mais segurança, praticidade e controle de acesso para sua residência.</p>
       <p>Controle de acesso e mais tranquilidade, de forma prática.</p>
     </article>
 
     <article class="service-card">
-      <span class="service-icon">⌁</span>
+      <span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.8a14 14 0 0 1 19 0M5.8 12a9.2 9.2 0 0 1 12.4 0m-9.2 3.3a4.6 4.6 0 0 1 6 0"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg></span>
       <h3>REDE WI-FI RESIDENCIAL</h3>
       <p>Conectividade eficiente em todos os ambientes.</p>
     </article>
 
 <article class="service-card">
-  <span class="service-icon">🎙️</span>
+  <span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/><path d="M3 8v4m18-4v4"/></svg></span>
   <h3>CONTROLE POR VOZ</h3>
   <p>Com a Alexa, controle iluminação, cortinas, som e outros dispositivos com comandos de voz.</p>
 </article>
@@ -162,6 +163,39 @@ function gtag_report_conversion(url) {
   </div>
 </section>
 
+<section class="cp-scenes" id="experiencia" aria-labelledby="cp-scenes-title">
+  <div class="cp-scenes-intro">
+    <span class="eyebrow">SUA CASA EM CADA MOMENTO</span>
+    <h2 id="cp-scenes-title">Tecnologia que acompanha <em>sua rotina.</em></h2>
+    <p>Escolha uma cena e descubra como iluminação, cortinas, climatização, som e segurança podem funcionar em harmonia.</p>
+  </div>
+  <div class="cp-scenes-picker" role="group" aria-label="Escolha uma cena para sua casa">
+    <button class="cp-scene-button" type="button" data-scene="cheguei" aria-pressed="true"><span class="cp-scene-number">01</span><span>Cheguei em casa</span></button>
+    <button class="cp-scene-button" type="button" data-scene="cinema" aria-pressed="false"><span class="cp-scene-number">02</span><span>Modo cinema</span></button>
+    <button class="cp-scene-button" type="button" data-scene="noite" aria-pressed="false"><span class="cp-scene-number">03</span><span>Boa noite</span></button>
+    <button class="cp-scene-button" type="button" data-scene="viajar" aria-pressed="false"><span class="cp-scene-number">04</span><span>Vou viajar</span></button>
+  </div>
+  <div class="cp-scenes-layout" aria-live="polite">
+    <figure class="cp-scenes-room" aria-label="Visualização ilustrativa da cena selecionada">
+      <img class="cp-scenes-photo is-active" id="cp-scene-photo-a" src="cena-cheguei.webp" alt="Sala sofisticada ao entardecer, com cortinas abertas e iluminação acolhedora" loading="lazy">
+      <img class="cp-scenes-photo" id="cp-scene-photo-b" src="cena-cheguei.webp" alt="" aria-hidden="true" loading="lazy">
+      <span class="cp-scenes-live"><i aria-hidden="true"></i> Simulação da cena</span>
+      <span class="cp-scenes-counter" id="cp-scene-counter">CENA 01 / 04</span>
+      <figcaption class="cp-scenes-caption"><span id="cp-scene-kicker">Quando você chega</span><strong id="cp-scene-title">Bem-vindo de volta.</strong><p id="cp-scene-copy">A casa abre as cortinas e prepara a iluminação para receber você.</p></figcaption>
+    </figure>
+    <aside class="cp-scenes-panel" aria-labelledby="cp-scene-label">
+      <span class="cp-scenes-panel-kicker">CENA AUTOMATIZADA</span>
+      <h3 id="cp-scene-label">Cheguei em casa</h3>
+      <p id="cp-scene-description">Um ambiente acolhedor pronto para você.</p>
+      <ul class="cp-scenes-controls" id="cp-scene-controls" aria-label="Ações da cena"></ul>
+      <a class="cp-scenes-cta" id="cp-scene-cta" href="https://wa.me/5571993342920?text=Ol%C3%A1%21%20Quero%20conversar%20sobre%20um%20projeto%20de%20automa%C3%A7%C3%A3o%20residencial.">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.6A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8.2 8.2c.3-.7.6-.7 1-.7.2 0 .4 0 .6.5l.7 1.6c.1.3.1.5-.1.7l-.5.6c-.2.2-.2.4 0 .7.7 1.1 1.7 2 2.8 2.6.3.2.5.1.7-.1l.7-.8c.2-.2.4-.3.7-.2l1.6.8c.3.2.5.3.5.5 0 .4-.2.9-.6 1.2-.5.4-1.2.6-1.9.5-1.1-.1-2.6-.8-4-2-1.5-1.3-2.6-2.9-2.9-4-.2-.7 0-1.5.5-1.9Z"/></svg>
+        <span>Quero um projeto assim</span>
+      </a>
+      <p class="cp-scenes-note">Imagens ilustrativas. Cada automação é personalizada para o imóvel.</p>
+    </aside>
+  </div>
+</section>
 <section class="about" id="sobre">
  <div class="text">
   <span class="eyebrow">SOBRE A CONNECT PLUS</span>
@@ -371,6 +405,7 @@ function gtag_report_conversion(url) {
 </div>
 <!-- FIM DO ASSISTENTE VIRTUAL -->  
 <script src="script.js"></script>
+<script src="interactive-scenes.js?v=20261122" defer></script>
 <script>
 (function () {
   const toggle = document.querySelector('.menu-toggle');
@@ -390,5 +425,6 @@ function gtag_report_conversion(url) {
 </script>
 
 </body></html>
+
 
 
