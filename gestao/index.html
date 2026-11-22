@@ -62,6 +62,8 @@
       <strong>Primeira configuração</strong>
       <p>Não há dados na nuvem ainda. Primeiro baixe uma cópia deste notebook. Depois você escolhe se importa os dados locais ou inicia vazio.</p>
       <button id="downloadLocalBackup" type="button">1. Baixar backup deste notebook</button>
+      <button id="restoreBackupFile" type="button" class="secure-secondary">Importar arquivo de backup deste computador</button>
+      <input id="backupFileInput" type="file" accept=".json,application/json" hidden>
       <button id="importLocalData" type="button" disabled>2. Importar dados locais para a nuvem</button>
       <button id="keepCloudData" type="button" class="secure-secondary" disabled>2. Manter a versão da nuvem</button><button id="startEmpty" type="button" class="secure-secondary">Iniciar plataforma sem dados</button>
     </div>

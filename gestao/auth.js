@@ -50,6 +50,34 @@ function askImport(localData) {
     document.getElementById('importLocalData').disabled = false;
     say('Backup baixado. Agora você pode importar os dados deste notebook com segurança.');
   };
+  const backupFileInput = document.getElementById('backupFileInput');
+  document.getElementById('restoreBackupFile').onclick = () => backupFileInput.click();
+  backupFileInput.onchange = async () => {
+    const file = backupFileInput.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > 15 * 1024 * 1024) throw new Error('O arquivo de backup excede o limite de 15 MB.');
+      const backup = JSON.parse(await file.text());
+      if (backup?.product !== 'Connect Plus Gestão' || !backup.data || typeof backup.data !== 'object' || Array.isArray(backup.data)) {
+        throw new Error('Este arquivo não parece ser um backup válido da plataforma Connect Plus Gestão.');
+      }
+      if (!Object.keys(backup.data).length) throw new Error('O backup não contém dados para restaurar.');
+      say('Restaurando o backup na nuvem segura…');
+      const { data, error } = await supabase.from('internal_app_state')
+        .insert({ id: 'connectplus', data: backup.data, revision: 1 }).select('revision').single();
+      if (error) throw error;
+      currentRevision = data.revision;
+      localStorage.setItem(localKey, JSON.stringify(backup.data));
+      localStorage.setItem(recoveryKey, JSON.stringify({ savedAt: new Date().toISOString(), data: backup.data }));
+      sessionStorage.setItem('cp-cloud-state-loaded', '1');
+      sessionStorage.setItem('cp-allow-hydrate', '1');
+      location.reload();
+    } catch (e) {
+      say(`Não foi possível restaurar o backup: ${e.message}`, true);
+    } finally {
+      backupFileInput.value = '';
+    }
+  };
   document.getElementById('importLocalData').onclick = async () => {
     if (!localData) return say('Não há dados locais para importar.', true);
     try {
