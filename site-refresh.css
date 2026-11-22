@@ -179,3 +179,7 @@ footer{gap:24px;padding:28px clamp(18px,6vw,88px);border-top:1px solid var(--cp-
 .panels .phone h2,.panels .phone p,.panels .phone a{position:relative;z-index:1;max-width:58%}
 @media(max-width:760px){.panels{grid-template-columns:1fr;padding:18px}.panels article{min-height:350px;padding:30px 24px}.panels .phone::before{right:5%;width:145px;height:230px;opacity:.72}.panels .phone::after{right:calc(5% + 19px);width:102px;padding:18px 10px;font-size:10px;line-height:2.2}.panels .phone h2,.panels .phone p,.panels .phone a{max-width:70%}}
 @media(max-width:460px){.panels .phone::before{right:3%;width:118px;height:205px}.panels .phone::after{right:calc(3% + 15px);width:84px;padding:15px 8px;font-size:9px}.panels .phone h2,.panels .phone p,.panels .phone a{max-width:74%}}
+
+/* Ajuste de alinhamento do celular ilustrativo */
+.panels .phone::before{transform:translateY(-50%) rotate(0deg)}
+.panels .phone::after{transform:translateY(-47%) rotate(0deg)}
