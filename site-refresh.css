@@ -183,3 +183,5 @@ footer{gap:24px;padding:28px clamp(18px,6vw,88px);border-top:1px solid var(--cp-
 /* Ajuste de alinhamento do celular ilustrativo */
 .panels .phone::before{transform:translateY(-50%) rotate(0deg)}
 .panels .phone::after{transform:translateY(-47%) rotate(0deg)}
+
+.about-partner-visual{background-image:linear-gradient(180deg,rgba(3,13,25,.04) 12%,rgba(3,13,25,.18) 36%,rgba(3,13,25,.74) 100%),url('parceria-corretores-smart-home.png');}
