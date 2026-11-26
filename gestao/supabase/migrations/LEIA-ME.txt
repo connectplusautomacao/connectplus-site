@@ -26,6 +26,10 @@ ANTES DE PUBLICAR
    A segunda migração cria a tabela operacional da equipe e copia os dados para
    ela sem custos, lucros, parcerias ou comissões. A linha original permanece
    protegida para administradores.
+   c) supabase/migrations/202611260002_security_access_history.sql
+   A terceira migração encaminha salvamentos por funções seguras, grava versões
+   anteriores recuperáveis e libera o gerenciamento de membros somente para
+   administradores. Ela deve ser aplicada antes de publicar a versão atualizada.
 4. Em supabase-config.js, substitua os dois valores de exemplo pela URL e pela
    chave publicável (publishable/anon) do NOVO projeto. Nunca use service_role.
 5. No Supabase > Authentication > URL Configuration, defina Site URL e Redirect
@@ -40,22 +44,18 @@ ANTES DE PUBLICAR
 CADASTRAR UM TÉCNICO
 1. Crie uma conta individual para o técnico em Authentication > Users. Não
    compartilhe o e-mail e a senha do proprietário.
-2. Depois da migração, execute no SQL Editor, trocando pelo e-mail da pessoa:
-
-   insert into public.company_members (user_id, email, role, active)
-   select id, lower(email), 'technician', true
-   from auth.users
-   where lower(email) = lower('tecnico@empresa.com')
-   on conflict (user_id) do update
-   set email = excluded.email, role = 'technician', active = true;
+2. Depois de criar a conta, entre na Área Administrativa, em Controle de acesso,
+   informe o e-mail e escolha Técnico. O sistema confirma que a conta já existe
+   e registra o perfil no banco. Não compartilhe a conta do proprietário.
 
 3. O técnico entra em /gestao/ com a própria conta e acessa apenas orçamento,
    planta, visita, comprovantes e execução. Custos, lucratividade, parcerias,
    comissões e backup ficam disponíveis somente para owner/admin.
 
-Para desativar um acesso, defina active=false na linha correspondente de
-public.company_members. Use role='admin' somente para pessoas autorizadas a ver
-os dados financeiros e de parcerias.
+Para desativar ou reativar um técnico, use o botão correspondente na lista de
+Controle de acesso. Só o proprietário pode liberar ou alterar outra conta de
+administrador. O perfil de administrador permite ver dados financeiros e de
+parcerias.
 
 SEGURANÇA E LIMITES
 - A URL e a chave publicável aparecem no código do site; isso é esperado. O
@@ -66,6 +66,10 @@ SEGURANÇA E LIMITES
 - O backup completo contém dados administrativos e deve ser baixado e guardado
   somente por owner/admin, em local protegido. A cópia local do técnico contém
   somente dados operacionais.
+- A Área Administrativa mostra as últimas 50 versões anteriores de cada área;
+  restaurações criam uma nova revisão e também ficam registradas no histórico.
+- A conta em Authentication > Users ainda é criada pelo proprietário no painel
+  do Supabase. A tela da Connect Plus apenas libera ou desativa o perfil.
 - Como o site atual usa GitHub Pages, os arquivos da aplicação são públicos;
   dados permanecem protegidos no Supabase pelas políticas desta migração.
 

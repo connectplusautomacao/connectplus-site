@@ -12,12 +12,17 @@ let pendingState = null, saveTimer = null, saveChain = Promise.resolve();
 let loadingState = false;
 let passwordRecoveryActive = false;
 let backupImportBound = false;
+let adminToolsBound = false;
+let activeUserId = null;
+let accessCheckTimer = null;
+let accessCheckBusy = false;
 
 const ADMIN_FIELDS = ['partners', 'referrals', 'financeRecords', 'fixedCosts'];
+const TEAM_FIELDS = ['quote', 'savedQuotes', 'plan', 'visit', 'savedVisits', 'receipt', 'receipts', 'execution', 'savedExecutions'];
 function copy(value) { return JSON.parse(JSON.stringify(value ?? {})); }
 function teamSafeState(value) {
-  const data = copy(value);
-  for (const field of ADMIN_FIELDS) delete data[field];
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const data = Object.fromEntries(TEAM_FIELDS.filter(field => Object.hasOwn(source, field)).map(field => [field, copy(source[field])]));
   const stripQuoteCosts = quote => {
     if (!quote || typeof quote !== 'object') return quote;
     quote.items = Array.isArray(quote.items) ? quote.items.map(item => {
@@ -82,11 +87,14 @@ async function initializeState(data) {
 }
 async function saveCloudState(stateObj) {
   if (memberRole === 'technician') {
-    const { data, error } = await supabase.from('team_app_state')
-      .update({ data: teamSafeState(stateObj), revision: teamRevision + 1, updated_at: new Date().toISOString() })
-      .eq('id', 'connectplus').eq('revision', teamRevision).select('revision').maybeSingle();
-    if (error || !data) throw error || new Error('Os dados da equipe mudaram em outra sessão. Atualize a plataforma.');
-    teamRevision = data.revision;
+    const { data, error } = await supabase.rpc('save_team_app_state', {
+      p_data: teamSafeState(stateObj),
+      p_revision: teamRevision
+    });
+    if (error) throw error;
+    const result = Array.isArray(data) ? data[0] : data;
+    if (!result?.team_revision) throw new Error('Os dados da equipe mudaram em outra sessão. Atualize a plataforma.');
+    teamRevision = result.team_revision;
     return;
   }
   if (splitStorage) {
@@ -168,7 +176,201 @@ function bindBackupImport() {
   });
 }
 function showGate() { gate.hidden = false; app.hidden = true; }
-function showApp() { gate.hidden = true; app.hidden = false; document.getElementById('cloudBadge').hidden = false; sessionStorage.removeItem('cp-cloud-state-loaded'); sessionStorage.removeItem('cp-allow-hydrate'); }
+function showApp() {
+  gate.hidden = true;
+  app.hidden = false;
+  document.getElementById('cloudBadge').hidden = false;
+  sessionStorage.removeItem('cp-cloud-state-loaded');
+  sessionStorage.removeItem('cp-allow-hydrate');
+  if (['owner', 'admin'].includes(memberRole)) initializeAdminTools();
+  startAccessRevalidation();
+}
+
+async function revalidateAccess() {
+  if (!activeUserId || accessCheckBusy || passwordRecoveryActive || !supabase) return;
+  accessCheckBusy = true;
+  try {
+    const { data, error } = await supabase.from('company_members')
+      .select('role,active').eq('user_id', activeUserId).maybeSingle();
+    if (error) return;
+    if (!data?.active || !['owner', 'admin', 'technician'].includes(data.role)) {
+      await supabase.auth.signOut();
+      localStorage.removeItem(localKey);
+      localStorage.removeItem(recoveryKey);
+      location.reload();
+      return;
+    }
+    if (data.role !== memberRole) {
+      setMemberRole(data.role);
+      await loadSecureState();
+    }
+  } catch {
+    // Keep the current view during a temporary network outage. Access is checked
+    // again when the connection returns or the window becomes active.
+  } finally {
+    accessCheckBusy = false;
+  }
+}
+
+function startAccessRevalidation() {
+  if (accessCheckTimer) clearInterval(accessCheckTimer);
+  accessCheckTimer = setInterval(revalidateAccess, 45000);
+}
+
+window.addEventListener('focus', revalidateAccess);
+
+function setAdminStatus(id, text, error = false) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.textContent = text;
+  element.dataset.error = error ? 'true' : 'false';
+}
+
+function renderCompanyMembers(rows) {
+  const list = document.getElementById('companyMemberList');
+  if (!list) return;
+  list.replaceChildren();
+  if (!rows?.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = 'Nenhum acesso da equipe foi cadastrado ainda.';
+    list.append(empty);
+    return;
+  }
+  for (const member of rows) {
+    const row = document.createElement('div');
+    row.className = 'saved-row';
+    const details = document.createElement('div');
+    const email = document.createElement('strong');
+    email.textContent = member.email || 'Conta sem e-mail';
+    const status = document.createElement('span');
+    const roleLabel = member.role === 'owner' ? 'Proprietário' : member.role === 'admin' ? 'Administrador' : 'Técnico';
+    status.textContent = `${roleLabel} · ${member.active ? 'Ativo' : 'Desativado'}`;
+    details.append(email, document.createElement('br'), status);
+    row.append(details);
+    if (member.active && member.role !== 'owner' && member.email?.toLowerCase() !== document.getElementById('cloudAccount')?.textContent?.toLowerCase()) {
+      const disable = document.createElement('button');
+      disable.type = 'button';
+      disable.className = 'button danger';
+      disable.textContent = 'Desativar';
+      disable.addEventListener('click', () => changeMemberStatus(member, false));
+      row.append(disable);
+    } else if (!member.active && member.role !== 'owner') {
+      const enable = document.createElement('button');
+      enable.type = 'button';
+      enable.className = 'button secondary';
+      enable.textContent = 'Reativar';
+      enable.addEventListener('click', () => changeMemberStatus(member, true));
+      row.append(enable);
+    }
+    list.append(row);
+  }
+}
+
+async function loadCompanyMembers() {
+  setAdminStatus('companyMemberStatus', 'Carregando acessos…');
+  const { data, error } = await supabase.from('company_members')
+    .select('user_id,email,role,active,created_at').order('created_at', { ascending: true });
+  if (error) throw error;
+  renderCompanyMembers(data || []);
+  setAdminStatus('companyMemberStatus', `${data?.length || 0} acesso(s) cadastrado(s).`);
+}
+
+async function changeMemberStatus(member, active) {
+  if (!confirm(`${active ? 'Reativar' : 'Desativar'} o acesso de ${member.email}?`)) return;
+  setAdminStatus('companyMemberStatus', 'Atualizando acesso…');
+  const { error } = await supabase.rpc('manage_company_member_access', {
+    p_email: member.email,
+    p_role: member.role,
+    p_active: active
+  });
+  if (error) return setAdminStatus('companyMemberStatus', error.message || 'Não foi possível atualizar o acesso.', true);
+  try { await loadCompanyMembers(); }
+  catch (loadError) { setAdminStatus('companyMemberStatus', loadError.message || 'Acesso atualizado, mas não foi possível recarregar a lista.', true); }
+}
+
+function renderCompanyHistory(rows) {
+  const list = document.getElementById('companyHistoryList');
+  if (!list) return;
+  list.replaceChildren();
+  if (!rows?.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = 'O histórico será criado após as próximas alterações sincronizadas.';
+    list.append(empty);
+    return;
+  }
+  for (const entry of rows) {
+    const row = document.createElement('div');
+    row.className = 'saved-row';
+    const details = document.createElement('div');
+    const label = document.createElement('strong');
+    label.textContent = entry.area === 'admin' ? 'Área administrativa' : 'Área da equipe';
+    const metadata = document.createElement('span');
+    const timestamp = entry.changed_at ? new Date(entry.changed_at).toLocaleString('pt-BR') : 'Data indisponível';
+    metadata.textContent = `${timestamp} · ${entry.actor_email || 'Conta autorizada'} · versão anterior ${entry.from_revision}`;
+    details.append(label, document.createElement('br'), metadata);
+    const restore = document.createElement('button');
+    restore.type = 'button';
+    restore.className = 'button secondary';
+    restore.textContent = 'Restaurar esta versão';
+    restore.addEventListener('click', () => restoreCompanyHistory(entry));
+    row.append(details, restore);
+    list.append(row);
+  }
+}
+
+async function loadCompanyHistory() {
+  setAdminStatus('companyHistoryStatus', 'Carregando histórico…');
+  const { data, error } = await supabase.from('company_app_state_audit')
+    .select('id,area,actor_email,changed_at,from_revision,to_revision')
+    .order('id', { ascending: false }).limit(20);
+  if (error) throw error;
+  renderCompanyHistory(data || []);
+  setAdminStatus('companyHistoryStatus', `${data?.length || 0} versão(ões) de recuperação disponíveis.`);
+}
+
+async function restoreCompanyHistory(entry) {
+  const area = entry.area === 'admin' ? 'administrativa' : 'equipe';
+  if (!confirm(`Restaurar a versão anterior ${entry.from_revision} da ${area}? O estado atual será guardado no histórico.`)) return;
+  setAdminStatus('companyHistoryStatus', 'Restaurando os dados…');
+  const { error } = await supabase.rpc('restore_company_state_audit', { p_audit_id: entry.id });
+  if (error) return setAdminStatus('companyHistoryStatus', error.message || 'Não foi possível restaurar esta versão.', true);
+  try {
+    const current = localStorage.getItem(localKey);
+    if (current) localStorage.setItem(recoveryKey, JSON.stringify({ savedAt: new Date().toISOString(), data: JSON.parse(current) }));
+  } catch {}
+  sessionStorage.setItem('cp-cloud-state-loaded', '1');
+  sessionStorage.setItem('cp-allow-hydrate', '1');
+  location.reload();
+}
+
+function initializeAdminTools() {
+  if (adminToolsBound) return;
+  adminToolsBound = true;
+  const roleOption = document.getElementById('memberAdminRoleOption');
+  if (roleOption) roleOption.hidden = memberRole !== 'owner';
+  const form = document.getElementById('companyMemberForm');
+  form?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const email = document.getElementById('companyMemberEmail').value.trim().toLowerCase();
+    const role = document.getElementById('companyMemberRole').value;
+    if (!email) return setAdminStatus('companyMemberStatus', 'Informe o e-mail da conta já criada no Supabase.', true);
+    setAdminStatus('companyMemberStatus', 'Salvando acesso…');
+    const { error } = await supabase.rpc('manage_company_member_access', {
+      p_email: email, p_role: role, p_active: true
+    });
+    if (error) return setAdminStatus('companyMemberStatus', error.message || 'Não foi possível salvar o acesso.', true);
+    form.reset();
+    try { await loadCompanyMembers(); }
+    catch (loadError) { setAdminStatus('companyMemberStatus', loadError.message || 'Acesso salvo, mas a lista não foi atualizada.', true); }
+  });
+  document.getElementById('refreshCompanyMembers')?.addEventListener('click', () => loadCompanyMembers().catch(error => setAdminStatus('companyMemberStatus', error.message || 'Falha ao carregar os acessos.', true)));
+  document.getElementById('refreshCompanyHistory')?.addEventListener('click', () => loadCompanyHistory().catch(error => setAdminStatus('companyHistoryStatus', error.message || 'Falha ao carregar o histórico.', true)));
+  Promise.all([loadCompanyMembers(), loadCompanyHistory()]).catch(error => {
+    setAdminStatus('companyMemberStatus', error.message || 'Não foi possível carregar os controles administrativos.', true);
+  });
+}
 function parseLocal() {
   try {
     const current = JSON.parse(localStorage.getItem(localKey) || 'null');
@@ -274,6 +476,7 @@ async function loadSecureState() {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (passwordRecoveryActive) return;
   if (userError || !userData.user) return showGate();
+  activeUserId = userData.user.id;
   const { data: member, error: memberError } = await supabase.from('company_members')
     .select('role,active').eq('user_id', userData.user.id).maybeSingle();
   if (passwordRecoveryActive) return;
@@ -415,6 +618,7 @@ if (!cfg.url || cfg.url.includes('COLE_') || !cfg.publishableKey || cfg.publisha
   // Expose only the active staff session token to the portal bridge. The portal
   // Edge Function independently verifies this token and the owner/admin role.
   window.__getInternalAccessToken = async () => {
+    if (!['owner', 'admin'].includes(memberRole)) throw new Error('Somente administradores podem gerenciar o portal do cliente.');
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
     return data.session?.access_token || null;

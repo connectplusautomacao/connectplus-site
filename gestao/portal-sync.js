@@ -8,6 +8,47 @@ const documentBucket = 'client-documents';
 const maxDocumentBytes = 15 * 1024 * 1024;
 const safeText = (value) => String(value ?? '').trim();
 let portalStorageClient = null;
+let portalControlsInitialized = false;
+let portalRole = null;
+let quoteObserver = null;
+let documentProjectObserver = null;
+let quoteClickHandler = null;
+
+function hasPortalAdminAccess() {
+  return portalRole === 'owner' || portalRole === 'admin';
+}
+
+function removePortalControls() {
+  quoteObserver?.disconnect();
+  documentProjectObserver?.disconnect();
+  quoteObserver = null;
+  documentProjectObserver = null;
+  const quotes = document.getElementById('savedQuotes');
+  if (quotes && quoteClickHandler) quotes.removeEventListener('click', quoteClickHandler);
+  if (quotes) {
+    quotes.querySelectorAll('.portal-release').forEach((button) => button.remove());
+    delete quotes.dataset.portalBound;
+  }
+  document.getElementById('publishPortalProgress')?.closest('.portal-progress-controls')?.remove();
+  document.getElementById('portalSupportAdmin')?.remove();
+  document.getElementById('portalDocumentUpload')?.remove();
+  portalControlsInitialized = false;
+}
+
+function setPortalRole(role) {
+  portalRole = role;
+  if (!hasPortalAdminAccess()) {
+    removePortalControls();
+    return;
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+}
+
+window.__cpPortalSetRole = setPortalRole;
 
 function quoteFingerprint(q) {
   return JSON.stringify({
@@ -25,6 +66,7 @@ function updateStatus(text, error = false) {
 }
 
 async function callFunction(payload) {
+  if (!hasPortalAdminAccess()) throw new Error('Esta ação está disponível somente para administradores.');
   if (!portalUrl || !portalKey) throw new Error('A conexão do portal precisa ser configurada.');
   if (!window.__getInternalAccessToken) throw new Error('Entre novamente na plataforma da equipe.');
   const token = await window.__getInternalAccessToken();
@@ -326,22 +368,33 @@ function bindQuoteActions() {
   const quotes = document.getElementById('savedQuotes');
   if (!quotes || quotes.dataset.portalBound) return;
   quotes.dataset.portalBound = '1';
-  quotes.addEventListener('click', (event) => {
+  quoteClickHandler = (event) => {
     const button = event.target.closest('.portal-release');
     if (button) releaseProposal(button.dataset.id);
-  });
-  new MutationObserver(renderReleaseButtons).observe(quotes, { childList: true });
+  };
+  quotes.addEventListener('click', quoteClickHandler);
+  quoteObserver = new MutationObserver(renderReleaseButtons);
+  quoteObserver.observe(quotes, { childList: true });
   renderReleaseButtons();
 }
 
 function init() {
-  if (!portalUrl || !portalKey) return;
+  if (portalControlsInitialized || !hasPortalAdminAccess() || !portalUrl || !portalKey) return;
+  portalControlsInitialized = true;
   // The portal key is publishable and can only invoke an Edge Function that
   // separately validates the logged-in internal-team JWT.
   bindQuoteActions();
   mountExecutionControls();
   const quotes = document.getElementById('savedQuotes');
-  if (quotes) new MutationObserver(refreshDocumentProjectOptions).observe(quotes, { childList: true, subtree: true });
+  if (quotes) {
+    documentProjectObserver = new MutationObserver(refreshDocumentProjectOptions);
+    documentProjectObserver.observe(quotes, { childList: true, subtree: true });
+  }
 }
 
-document.addEventListener('DOMContentLoaded', init, { once: true });
+if (window.__CP_MEMBER_ROLE) setPortalRole(window.__CP_MEMBER_ROLE);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.__CP_MEMBER_ROLE) setPortalRole(window.__CP_MEMBER_ROLE);
+  }, { once: true });
+}

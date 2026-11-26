@@ -1,4 +1,4 @@
-const CACHE_NAME='connectplus-launcher-v4-areas';
+const CACHE_NAME='connectplus-launcher-v5-security-refresh';
 const APP_SHELL=[
   '/connectplus-site/app/',
   '/connectplus-site/app/index.html',

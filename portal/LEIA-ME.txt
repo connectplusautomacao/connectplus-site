@@ -12,10 +12,16 @@ que já ficam na raiz do repositório.
 Arquivos
 - index.html e portal.css: identidade visual atualizada e responsiva.
 - portal.js: acesso Supabase, recuperação de senha, projetos, atualizações e documentos.
-- supabase/migrations/202611190001_portal_cliente.sql: estrutura e políticas do banco.
+- A migração SQL e o código-fonte da Edge Function do portal não estão incluídos
+  neste checkout. Não é possível conferir nem reproduzir as políticas ativas a
+  partir somente destes arquivos.
 
 Supabase
-- Projeto dedicado ao portal; migration e regras RLS aplicadas.
+- Projeto Supabase dedicado ao portal, configurado separadamente da gestão interna.
+- Antes de liberar ações administrativas do portal, mantenha no repositório a
+  migração SQL e o código da Edge Function `client-projects`. A função precisa
+  validar no servidor que o JWT pertence a owner/admin; ocultar botões no site
+  não protege a função.
 - Bucket client-documents privado.
 - A chave no portal.js é publishable. Nunca incluir service_role ou chave secreta
   em arquivos públicos.

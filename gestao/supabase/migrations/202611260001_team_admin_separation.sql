@@ -37,16 +37,19 @@ grant execute on function public.is_admin_company_member() to authenticated;
 -- The existing row stays private to admins and remains the source of truth
 -- for all private fields. The new table contains only operational data.
 drop policy if exists "authorized staff read internal state" on public.internal_app_state;
+drop policy if exists "administrators read internal state" on public.internal_app_state;
 create policy "administrators read internal state"
   on public.internal_app_state for select to authenticated
   using ((select public.is_admin_company_member()));
 
 drop policy if exists "authorized staff create internal state" on public.internal_app_state;
+drop policy if exists "administrators create internal state" on public.internal_app_state;
 create policy "administrators create internal state"
   on public.internal_app_state for insert to authenticated
   with check ((select public.is_admin_company_member()));
 
 drop policy if exists "authorized staff update internal state" on public.internal_app_state;
+drop policy if exists "administrators update internal state" on public.internal_app_state;
 create policy "administrators update internal state"
   on public.internal_app_state for update to authenticated
   using ((select public.is_admin_company_member()))
