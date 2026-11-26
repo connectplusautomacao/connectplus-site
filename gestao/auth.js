@@ -38,6 +38,16 @@ function bindBackupImport() {
       say('Enviando o backup para a nuvem segura…');
       const { data: saved, error } = await supabase.from('internal_app_state')
         .insert({ id: 'connectplus', data, revision: 1 }).select('revision').single();
+      if (error?.code === '23505') {
+        const { data: cloudState, error: readError } = await supabase.from('internal_app_state')
+          .select('data,revision').eq('id', 'connectplus').maybeSingle();
+        if (readError) throw readError;
+        if (!cloudState) throw error;
+        localStorage.setItem(recoveryKey, JSON.stringify({ savedAt: new Date().toISOString(), data }));
+        askResolveConflict(data, cloudState);
+        say('Já existe uma versão na nuvem. Baixe uma cópia local e escolha qual versão manter.');
+        return;
+      }
       if (error) throw error;
       currentRevision = saved.revision;
       localStorage.setItem(localKey, JSON.stringify(data));
