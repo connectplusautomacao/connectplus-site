@@ -7,10 +7,108 @@ const msg = document.getElementById('gateMessage');
 const form = document.getElementById('loginForm');
 const localKey = 'connectplus-platform-v1';
 const recoveryKey = 'connectplus-platform-v1-recovery';
-let supabase, currentRevision = null, pendingState = null, saveTimer = null, saveChain = Promise.resolve();
+let supabase, currentRevision = null, teamRevision = null, memberRole = null, splitStorage = false;
+let pendingState = null, saveTimer = null, saveChain = Promise.resolve();
 let loadingState = false;
 let passwordRecoveryActive = false;
 let backupImportBound = false;
+
+const ADMIN_FIELDS = ['partners', 'referrals', 'financeRecords', 'fixedCosts'];
+function copy(value) { return JSON.parse(JSON.stringify(value ?? {})); }
+function teamSafeState(value) {
+  const data = copy(value);
+  for (const field of ADMIN_FIELDS) delete data[field];
+  const stripQuoteCosts = quote => {
+    if (!quote || typeof quote !== 'object') return quote;
+    quote.items = Array.isArray(quote.items) ? quote.items.map(item => {
+      const safe = { ...item }; delete safe.cost; return safe;
+    }) : [];
+    return quote;
+  };
+  data.quote = stripQuoteCosts(data.quote);
+  data.savedQuotes = Array.isArray(data.savedQuotes) ? data.savedQuotes.map(row => ({
+    ...row, q: stripQuoteCosts(copy(row?.q))
+  })) : [];
+  return data;
+}
+function hasPrivateData(value) {
+  if (!value || typeof value !== 'object') return false;
+  if ((value.partners || []).length || (value.referrals || []).length) return true;
+  const hasEnteredValues = (records, ignored = []) => Object.values(records || {}).some(record =>
+    Object.entries(record || {}).some(([key, item]) => !ignored.includes(key) && item !== '' && item != null)
+  );
+  if (hasEnteredValues(value.financeRecords, ['status', 'month']) ||
+      hasEnteredValues(value.fixedCosts, ['allocation'])) return true;
+  const hasItemCost = quote => (quote?.items || []).some(item => item?.cost !== '' && item?.cost != null);
+  return hasItemCost(value.quote) || (value.savedQuotes || []).some(row => hasItemCost(row?.q));
+}
+function restoreQuoteCosts(teamQuote, adminQuote) {
+  const quote = copy(teamQuote);
+  const privateItems = Array.isArray(adminQuote?.items) ? adminQuote.items : [];
+  const costsById = new Map(privateItems.map((item, index) => [String(item.id ?? index), item.cost]));
+  quote.items = (Array.isArray(quote.items) ? quote.items : []).map((item, index) => {
+    const key = String(item.id ?? index);
+    return costsById.has(key) ? { ...item, cost: costsById.get(key) } : item;
+  });
+  return quote;
+}
+function combineAdminAndTeam(adminData, teamData) {
+  const combined = { ...copy(adminData), ...copy(teamData) };
+  combined.quote = restoreQuoteCosts(teamData.quote, adminData.quote);
+  const privateQuotes = new Map((adminData.savedQuotes || []).map(row => [String(row.id), row]));
+  combined.savedQuotes = (teamData.savedQuotes || []).map(row => {
+    const privateRow = privateQuotes.get(String(row.id));
+    return { ...row, q: restoreQuoteCosts(row.q, privateRow?.q) };
+  });
+  for (const field of ADMIN_FIELDS) combined[field] = copy(adminData[field]);
+  return combined;
+}
+function setMemberRole(role) {
+  memberRole = role;
+  window.__CP_MEMBER_ROLE = role;
+  window.__cpSetAccessRole?.(role);
+}
+async function initializeState(data) {
+  const { data: adminRow, error: adminError } = await supabase.from('internal_app_state')
+    .insert({ id: 'connectplus', data, revision: 1 }).select('revision').single();
+  if (adminError) throw adminError;
+  currentRevision = adminRow.revision;
+  if (splitStorage) {
+    const { data: teamRow, error: teamError } = await supabase.from('team_app_state')
+      .insert({ id: 'connectplus', data: teamSafeState(data), revision: 1 }).select('revision').single();
+    if (teamError) throw teamError;
+    teamRevision = teamRow.revision;
+  }
+}
+async function saveCloudState(stateObj) {
+  if (memberRole === 'technician') {
+    const { data, error } = await supabase.from('team_app_state')
+      .update({ data: teamSafeState(stateObj), revision: teamRevision + 1, updated_at: new Date().toISOString() })
+      .eq('id', 'connectplus').eq('revision', teamRevision).select('revision').maybeSingle();
+    if (error || !data) throw error || new Error('Os dados da equipe mudaram em outra sessão. Atualize a plataforma.');
+    teamRevision = data.revision;
+    return;
+  }
+  if (splitStorage) {
+    const { data, error } = await supabase.rpc('save_company_app_state', {
+      p_admin_data: stateObj,
+      p_team_data: teamSafeState(stateObj),
+      p_admin_revision: currentRevision,
+      p_team_revision: teamRevision
+    });
+    if (error) throw error;
+    const revisions = Array.isArray(data) ? data[0] : data;
+    if (!revisions) throw new Error('O banco não confirmou a sincronização das duas áreas.');
+    currentRevision = revisions.admin_revision;
+    teamRevision = revisions.team_revision;
+    return;
+  }
+  const { data, error } = await supabase.from('internal_app_state')
+    .update({ data: stateObj, revision: currentRevision + 1, updated_at: new Date().toISOString() })
+    .eq('id', 'connectplus').eq('revision', currentRevision).select('revision').maybeSingle();
+  if (error || !data) throw error || new Error('Os dados online mudaram em outra sessão. Atualize a plataforma.');
+  currentRevision = data.revision;
+}
 
 function say(text, error = false) {
   msg.textContent = text;
@@ -50,6 +148,12 @@ function bindBackupImport() {
       }
       if (error) throw error;
       currentRevision = saved.revision;
+      if (splitStorage) {
+        const { data: teamRow, error: teamError } = await supabase.from('team_app_state')
+          .insert({ id: 'connectplus', data: teamSafeState(data), revision: 1 }).select('revision').single();
+        if (teamError) throw teamError;
+        teamRevision = teamRow.revision;
+      }
       localStorage.setItem(localKey, JSON.stringify(data));
       localStorage.setItem(recoveryKey, JSON.stringify({ savedAt: new Date().toISOString(), data }));
       sessionStorage.setItem('cp-cloud-state-loaded', '1');
@@ -104,9 +208,7 @@ function askImport(localData) {
     if (!localData) return say('Não há dados locais para importar.', true);
     try {
       say('Enviando os dados para a área interna segura…');
-      const { data, error } = await supabase.from('internal_app_state').insert({ id: 'connectplus', data: localData, revision: 1 }).select('revision').single();
-      if (error) throw error;
-      currentRevision = data.revision;
+      await initializeState(localData);
       localStorage.setItem(localKey, JSON.stringify(localData));
       sessionStorage.setItem('cp-cloud-state-loaded', '1'); sessionStorage.setItem('cp-allow-hydrate', '1');
       location.reload();
@@ -115,9 +217,7 @@ function askImport(localData) {
   document.getElementById('startEmpty').onclick = async () => {
     try {
       const empty = { quote: { items: [] }, savedQuotes: [], plan: { rooms: [] } };
-      const { data, error } = await supabase.from('internal_app_state').insert({ id: 'connectplus', data: empty, revision: 1 }).select('revision').single();
-      if (error) throw error;
-      currentRevision = data.revision;
+      await initializeState(empty);
       localStorage.setItem(localKey, JSON.stringify(empty));
       sessionStorage.setItem('cp-cloud-state-loaded', '1'); sessionStorage.setItem('cp-allow-hydrate', '1');
       location.reload();
@@ -146,9 +246,13 @@ function askResolveConflict(localData, cloudState) {
   document.getElementById('importLocalData').onclick = async () => {
     try {
       say('Atualizando os dados online…');
-      const { data, error } = await supabase.from('internal_app_state').update({ data: localData, revision: cloudState.revision + 1, updated_at: new Date().toISOString() }).eq('id','connectplus').eq('revision',cloudState.revision).select('revision').maybeSingle();
-      if (error || !data) throw error || new Error('Os dados online mudaram durante esta ação. Atualize a página e confira novamente.');
-      currentRevision = data.revision;
+      if (splitStorage) {
+        await saveCloudState(localData);
+      } else {
+        const { data, error } = await supabase.from('internal_app_state').update({ data: localData, revision: cloudState.revision + 1, updated_at: new Date().toISOString() }).eq('id','connectplus').eq('revision',cloudState.revision).select('revision').maybeSingle();
+        if (error || !data) throw error || new Error('Os dados online mudaram durante esta ação. Atualize a página e confira novamente.');
+        currentRevision = data.revision;
+      }
       localStorage.setItem(localKey, JSON.stringify(localData));
       sessionStorage.setItem('cp-cloud-state-loaded', '1'); sessionStorage.setItem('cp-allow-hydrate', '1');
       location.reload();
@@ -170,33 +274,88 @@ async function loadSecureState() {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (passwordRecoveryActive) return;
   if (userError || !userData.user) return showGate();
-  const { data: member, error: memberError } = await supabase.from('company_members').select('role,active').eq('user_id', userData.user.id).maybeSingle();
+  const { data: member, error: memberError } = await supabase.from('company_members')
+    .select('role,active').eq('user_id', userData.user.id).maybeSingle();
   if (passwordRecoveryActive) return;
-  if (memberError || !member?.active || !['owner','admin'].includes(member.role)) {
+  if (memberError || !member?.active || !['owner', 'admin', 'technician'].includes(member.role)) {
     await supabase.auth.signOut();
     showGate();
     return say('Esta conta não tem acesso autorizado à plataforma interna. Peça ao administrador para liberar o usuário.', true);
   }
-  const { data: state, error } = await supabase.from('internal_app_state').select('data,revision').eq('id','connectplus').maybeSingle();
-  if (passwordRecoveryActive) return;
-  if (error) {
-    showGate();
-    return say('Não foi possível carregar os dados. Confira se o projeto interno e as permissões foram configurados.', true);
-  }
-  if (!state) {
-    showGate();
-    return askImport(parseLocal());
-  }
-  currentRevision = state.revision;
-  const remoteJSON = JSON.stringify(state.data);
-  const localData = parseLocal();
-  if (stableStringify(localData) !== stableStringify(state.data)) {
-    if (localData && !sessionStorage.getItem('cp-cloud-state-loaded')) {
+  setMemberRole(member.role);
+
+  let remoteData;
+  if (member.role === 'technician') {
+    const { data: teamState, error: teamError } = await supabase.from('team_app_state')
+      .select('data,revision').eq('id', 'connectplus').maybeSingle();
+    if (passwordRecoveryActive) return;
+    if (teamError || !teamState) {
       showGate();
-      return askResolveConflict(localData, state);
+      return say('O acesso técnico ainda não foi preparado no banco seguro. Peça ao administrador para concluir a configuração antes de liberar esta conta.', true);
     }
-    localStorage.setItem(localKey, remoteJSON);
-    localStorage.setItem(recoveryKey, JSON.stringify({ savedAt: new Date().toISOString(), data: state.data }));
+    splitStorage = true;
+    teamRevision = teamState.revision;
+    remoteData = teamSafeState(teamState.data);
+  } else {
+    const { data: adminState, error: adminError } = await supabase.from('internal_app_state')
+      .select('data,revision').eq('id', 'connectplus').maybeSingle();
+    if (passwordRecoveryActive) return;
+    if (adminError) {
+      showGate();
+      return say('Não foi possível carregar os dados administrativos. Confira as permissões e a conexão do projeto seguro.', true);
+    }
+    if (!adminState) {
+      const { error: schemaError } = await supabase.from('team_app_state')
+        .select('id').eq('id', 'connectplus').maybeSingle();
+      if (schemaError && ['42P01', 'PGRST205'].includes(schemaError.code)) splitStorage = false;
+      else if (schemaError) {
+        showGate();
+        return say('Não foi possível verificar a configuração segura da equipe.', true);
+      } else splitStorage = true;
+      showGate();
+      return askImport(parseLocal());
+    }
+    currentRevision = adminState.revision;
+    const { data: teamState, error: teamError } = await supabase.from('team_app_state')
+      .select('data,revision').eq('id', 'connectplus').maybeSingle();
+    if (teamError && ['42P01', 'PGRST205'].includes(teamError.code)) {
+      // Safe compatibility for administrators until the database migration runs.
+      splitStorage = false;
+      remoteData = adminState.data;
+    } else if (teamError) {
+      showGate();
+      return say('Não foi possível carregar os dados da equipe. Atualize a página e tente novamente.', true);
+    } else {
+      splitStorage = true;
+      if (!teamState) {
+        const { data: seeded, error: seedError } = await supabase.from('team_app_state')
+          .insert({ id: 'connectplus', data: teamSafeState(adminState.data), revision: 1 })
+          .select('data,revision').single();
+        if (seedError) {
+          showGate();
+          return say('Não foi possível preparar a área da equipe. Os dados administrativos continuam preservados; tente novamente ou peça suporte.', true);
+        }
+        teamRevision = seeded.revision;
+        remoteData = combineAdminAndTeam(adminState.data, seeded.data);
+      } else {
+        teamRevision = teamState.revision;
+        remoteData = combineAdminAndTeam(adminState.data, teamState.data);
+      }
+    }
+  }
+
+  const localData = member.role === 'technician' ? null : parseLocal();
+  const localMatchesRemote = stableStringify(localData) === stableStringify(remoteData);
+  const localMatchesTeamOnly = member.role !== 'technician' && splitStorage && localData &&
+    !hasPrivateData(localData) &&
+    stableStringify(teamSafeState(localData)) === stableStringify(teamSafeState(remoteData));
+  if (member.role === 'technician' || !localMatchesRemote) {
+    if (localData && member.role !== 'technician' && !localMatchesTeamOnly && !sessionStorage.getItem('cp-cloud-state-loaded')) {
+      showGate();
+      return askResolveConflict(localData, { revision: currentRevision, data: remoteData });
+    }
+    localStorage.setItem(localKey, JSON.stringify(remoteData));
+    localStorage.setItem(recoveryKey, JSON.stringify({ savedAt: new Date().toISOString(), data: remoteData }));
     if (!sessionStorage.getItem('cp-cloud-state-loaded')) {
       sessionStorage.setItem('cp-cloud-state-loaded', '1');
       sessionStorage.setItem('cp-allow-hydrate', '1');
@@ -216,18 +375,12 @@ async function loadSecureState() {
       saveChain = saveChain.then(async () => {
         if (!pendingState) return;
         const payload = pendingState; pendingState = null;
-        const expected = currentRevision;
-        const { data, error: saveError } = await supabase.from('internal_app_state')
-          .update({ data: payload, revision: expected + 1, updated_at: new Date().toISOString() })
-          .eq('id','connectplus').eq('revision',expected).select('revision').maybeSingle();
-        if (saveError || !data) {
-          document.getElementById('quoteStatus').textContent = 'A sincronização online falhou ou houve alteração simultânea. Baixe um backup e atualize os dados antes de continuar.';
-          console.error(saveError || 'Conflito de revisão');
-          return;
-        }
-        currentRevision = data.revision;
+        await saveCloudState(payload);
         document.getElementById('quoteStatus').textContent = 'Salvo neste navegador e sincronizado com segurança.';
-      }).catch(e => console.error('Falha na sincronização:', e));
+      }).catch(e => {
+        document.getElementById('quoteStatus').textContent = `A sincronização online falhou: ${e.message || 'atualize a plataforma e tente novamente.'}`;
+        console.error('Falha na sincronização:', e);
+      });
     }, 700);
   };
   document.getElementById('cloudAccount').textContent = userData.user.email || 'Conta autorizada';

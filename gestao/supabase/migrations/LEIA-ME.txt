@@ -8,7 +8,8 @@ e o projeto Supabase dele também permanecem separados.
 O QUE ESTÁ PRONTO
 - A plataforma aprovada em uma pasta própria, com o mesmo conteúdo e recursos.
 - Tela de login sem cadastro público.
-- Proteção de dados por Supabase Auth e políticas RLS no banco.
+- Proteção por Supabase Auth e RLS; dados operacionais e administrativos ficam
+  em tabelas separadas, com leitura administrativa restrita a owner/admin.
 - Sincronização online com controle de revisão para evitar sobrescrita silenciosa.
 - Importação inicial dos dados locais somente após baixar um backup.
 - Cópia de recuperação local mantida no navegador.
@@ -19,9 +20,12 @@ ANTES DE PUBLICAR
 2. No projeto novo, crie o usuário proprietário em Authentication > Users,
    usando connectplusautomacao26@gmail.com e uma senha forte. Não habilite
    cadastro público.
-3. Abra SQL Editor, cole o conteúdo de:
-   supabase/migrations/202611200001_gestao_internal.sql
-   e execute. A consulta final deve mostrar a conta como owner.
+3. Abra SQL Editor e execute, nesta ordem:
+   a) supabase/migrations/202611200001_gestao_internal.sql
+   b) supabase/migrations/202611260001_team_admin_separation.sql
+   A segunda migração cria a tabela operacional da equipe e copia os dados para
+   ela sem custos, lucros, parcerias ou comissões. A linha original permanece
+   protegida para administradores.
 4. Em supabase-config.js, substitua os dois valores de exemplo pela URL e pela
    chave publicável (publishable/anon) do NOVO projeto. Nunca use service_role.
 5. No Supabase > Authentication > URL Configuration, defina Site URL e Redirect
@@ -33,11 +37,25 @@ ANTES DE PUBLICAR
 7. Acesse /gestao/. Entre com a conta proprietária. Na primeira importação, baixe
    o backup oferecido antes de enviar os dados existentes deste notebook.
 
-CADASTRAR OUTROS MEMBROS
-Crie a conta em Authentication > Users e adicione uma linha em
-public.company_members pelo Table Editor. O papel technician não tem acesso aos
-dados financeiros no estado atual. Somente owner/admin podem abrir a plataforma.
-Não compartilhe a senha do proprietário com a equipe.
+CADASTRAR UM TÉCNICO
+1. Crie uma conta individual para o técnico em Authentication > Users. Não
+   compartilhe o e-mail e a senha do proprietário.
+2. Depois da migração, execute no SQL Editor, trocando pelo e-mail da pessoa:
+
+   insert into public.company_members (user_id, email, role, active)
+   select id, lower(email), 'technician', true
+   from auth.users
+   where lower(email) = lower('tecnico@empresa.com')
+   on conflict (user_id) do update
+   set email = excluded.email, role = 'technician', active = true;
+
+3. O técnico entra em /gestao/ com a própria conta e acessa apenas orçamento,
+   planta, visita, comprovantes e execução. Custos, lucratividade, parcerias,
+   comissões e backup ficam disponíveis somente para owner/admin.
+
+Para desativar um acesso, defina active=false na linha correspondente de
+public.company_members. Use role='admin' somente para pessoas autorizadas a ver
+os dados financeiros e de parcerias.
 
 SEGURANÇA E LIMITES
 - A URL e a chave publicável aparecem no código do site; isso é esperado. O
@@ -45,8 +63,9 @@ SEGURANÇA E LIMITES
 - Não publique chave service_role, senha ou segredo de administrador.
 - Enquanto o endereço do projeto e sua chave publicável não forem configurados,
   o login não funcionará.
-- O app ainda mantém uma cópia local no navegador. Faça downloads de backup
-  periódicos e guarde-os em local protegido.
+- O backup completo contém dados administrativos e deve ser baixado e guardado
+  somente por owner/admin, em local protegido. A cópia local do técnico contém
+  somente dados operacionais.
 - Como o site atual usa GitHub Pages, os arquivos da aplicação são públicos;
   dados permanecem protegidos no Supabase pelas políticas desta migração.
 
