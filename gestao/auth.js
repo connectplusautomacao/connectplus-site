@@ -131,8 +131,10 @@ function askResolveConflict(localData, cloudState) {
   const box = document.getElementById('importChoice');
   box.hidden = false;
   say('Escolha qual versão manter ou selecione um backup JSON.');
-  document.getElementById('importTitle').textContent = 'Há dados diferentes neste notebook';
-  document.getElementById('importDescription').textContent = 'Antes de escolher, baixe uma cópia local. Depois decida se mantém a versão da nuvem ou envia a versão deste notebook.';
+  const importTitle = document.getElementById('importTitle');
+  if (importTitle) importTitle.textContent = 'Há dados diferentes neste notebook';
+  const importDescription = document.getElementById('importDescription');
+  if (importDescription) importDescription.textContent = 'Antes de escolher, baixe uma cópia local. Depois decida se mantém a versão da nuvem ou envia a versão deste notebook.';
   document.getElementById('startEmpty').hidden = true;
   document.getElementById('downloadLocalBackup').onclick = () => {
     downloadLocalBackup();
