@@ -10,10 +10,48 @@ const recoveryKey = 'connectplus-platform-v1-recovery';
 let supabase, currentRevision = null, pendingState = null, saveTimer = null, saveChain = Promise.resolve();
 let loadingState = false;
 let passwordRecoveryActive = false;
+let backupImportBound = false;
 
 function say(text, error = false) {
   msg.textContent = text;
   msg.dataset.error = error ? 'true' : 'false';
+}
+function bindBackupImport() {
+  if (backupImportBound) return;
+  const input = document.getElementById('backupFileInput');
+  if (!input) return;
+  backupImportBound = true;
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > 15 * 1024 * 1024) throw new Error('O arquivo de backup excede o limite de 15 MB.');
+      const backup = JSON.parse(await file.text());
+      const isPlatformBackup = backup?.app === 'ConnectPlus Plataforma' && backup?.formatVersion === 1;
+      const isLegacyBackup = backup?.product === 'Connect Plus Gestão';
+      const data = backup?.data;
+      if ((!isPlatformBackup && !isLegacyBackup) || !data || typeof data !== 'object' || Array.isArray(data) ||
+          !data.quote || typeof data.quote !== 'object' || !data.plan || typeof data.plan !== 'object' || !Array.isArray(data.savedQuotes)) {
+        throw new Error('Este arquivo não parece ser um backup válido da Connect Plus.');
+      }
+      if (!confirm('O backup será enviado para a nuvem segura da Connect Plus e ficará disponível nesta plataforma. Deseja continuar?')) return;
+      say('Enviando o backup para a nuvem segura…');
+      const { data: saved, error } = await supabase.from('internal_app_state')
+        .insert({ id: 'connectplus', data, revision: 1 }).select('revision').single();
+      if (error) throw error;
+      currentRevision = saved.revision;
+      localStorage.setItem(localKey, JSON.stringify(data));
+      localStorage.setItem(recoveryKey, JSON.stringify({ savedAt: new Date().toISOString(), data }));
+      sessionStorage.setItem('cp-cloud-state-loaded', '1');
+      sessionStorage.setItem('cp-allow-hydrate', '1');
+      say('Backup importado. Abrindo a plataforma…');
+      location.reload();
+    } catch (e) {
+      say(`Não foi possível restaurar o backup: ${e.message || String(e)}`, true);
+    } finally {
+      input.value = '';
+    }
+  });
 }
 function showGate() { gate.hidden = false; app.hidden = true; }
 function showApp() { gate.hidden = true; app.hidden = false; document.getElementById('cloudBadge').hidden = false; sessionStorage.removeItem('cp-cloud-state-loaded'); sessionStorage.removeItem('cp-allow-hydrate'); }
@@ -43,40 +81,14 @@ function showMigrationPanel() {
 }
 function askImport(localData) {
   showMigrationPanel();
+  bindBackupImport();
   const box = document.getElementById('importChoice');
   box.hidden = false;
+  say('Selecione o arquivo de backup JSON para continuar.');
   document.getElementById('downloadLocalBackup').onclick = () => {
     downloadLocalBackup();
     document.getElementById('importLocalData').disabled = false;
     say('Backup baixado. Agora você pode importar os dados deste notebook com segurança.');
-  };
-  const backupFileInput = document.getElementById('backupFileInput');
-  document.getElementById('restoreBackupFile').onclick = () => backupFileInput.click();
-  backupFileInput.onchange = async () => {
-    const file = backupFileInput.files?.[0];
-    if (!file) return;
-    try {
-      if (file.size > 15 * 1024 * 1024) throw new Error('O arquivo de backup excede o limite de 15 MB.');
-      const backup = JSON.parse(await file.text());
-      if (backup?.product !== 'Connect Plus Gestão' || !backup.data || typeof backup.data !== 'object' || Array.isArray(backup.data)) {
-        throw new Error('Este arquivo não parece ser um backup válido da plataforma Connect Plus Gestão.');
-      }
-      if (!Object.keys(backup.data).length) throw new Error('O backup não contém dados para restaurar.');
-      say('Restaurando o backup na nuvem segura…');
-      const { data, error } = await supabase.from('internal_app_state')
-        .insert({ id: 'connectplus', data: backup.data, revision: 1 }).select('revision').single();
-      if (error) throw error;
-      currentRevision = data.revision;
-      localStorage.setItem(localKey, JSON.stringify(backup.data));
-      localStorage.setItem(recoveryKey, JSON.stringify({ savedAt: new Date().toISOString(), data: backup.data }));
-      sessionStorage.setItem('cp-cloud-state-loaded', '1');
-      sessionStorage.setItem('cp-allow-hydrate', '1');
-      location.reload();
-    } catch (e) {
-      say(`Não foi possível restaurar o backup: ${e.message}`, true);
-    } finally {
-      backupFileInput.value = '';
-    }
   };
   document.getElementById('importLocalData').onclick = async () => {
     if (!localData) return say('Não há dados locais para importar.', true);
@@ -105,8 +117,10 @@ function askImport(localData) {
 
 function askResolveConflict(localData, cloudState) {
   showMigrationPanel();
+  bindBackupImport();
   const box = document.getElementById('importChoice');
   box.hidden = false;
+  say('Escolha qual versão manter ou selecione um backup JSON.');
   document.getElementById('importTitle').textContent = 'Há dados diferentes neste notebook';
   document.getElementById('importDescription').textContent = 'Antes de escolher, baixe uma cópia local. Depois decida se mantém a versão da nuvem ou envia a versão deste notebook.';
   document.getElementById('startEmpty').hidden = true;
