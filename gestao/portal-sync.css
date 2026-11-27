@@ -13,3 +13,16 @@
 .portal-document-upload input,.portal-document-upload select{max-width:100%;padding:.7rem;border:1px solid #cbd8e6;border-radius:8px;font:inherit;background:#fff}
 .portal-document-upload input[type=file]{padding:.55rem}
 .portal-document-upload button{justify-self:start}
+.execution-diary{margin-top:20px;padding:18px;border:1px solid #d3e1ef;border-radius:14px;background:#f8fbff}
+.execution-diary .eyebrow{margin:0 0 4px;color:#087ca8;font-size:11px;font-weight:800;letter-spacing:.12em}
+.execution-diary h3{margin:0 0 5px}
+.execution-diary .grid{margin-top:12px}
+.execution-diary textarea{min-height:86px}
+.execution-publish-choice{display:flex;align-items:center;gap:9px;margin:10px 0;color:#102746;font-weight:650}
+.execution-publish-choice input{width:18px;height:18px;accent-color:#0786e8}
+.execution-diary-list{display:grid;gap:9px;margin-top:14px}
+.execution-diary-entry{padding:12px;border:1px solid #d3e1ef;border-radius:10px;background:#fff}
+.execution-diary-entry header{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#102746}
+.execution-diary-entry p{margin:8px 0 0;white-space:pre-wrap;color:#526b86}
+.execution-diary-entry small{display:block;margin-top:8px;color:#526b86}
+@media(max-width:700px){.execution-diary{padding:13px}.execution-diary-entry header{display:grid}}

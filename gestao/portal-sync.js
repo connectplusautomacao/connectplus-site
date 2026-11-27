@@ -57,10 +57,14 @@ function setPortalRole(role) {
   portalRole = role;
   if (!hasPortalAdminAccess()) removePortalControls();
   if (!hasTeamSupportAccess()) return;
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSupportControls, { once: true });
-  } else {
+  const initializeTeamControls = () => {
     initSupportControls();
+    bindExecutionDiaryPublisher();
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeTeamControls, { once: true });
+  } else {
+    initializeTeamControls();
   }
   if (!hasPortalAdminAccess()) return;
   if (document.readyState === 'loading') {
@@ -118,6 +122,143 @@ async function callSupportFunction(payload) {
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error || 'Não foi possível carregar as solicitações de suporte.');
   return result;
+}
+
+async function callExecutionUpdateFunction(payload) {
+  if (!hasTeamSupportAccess()) throw new Error('Esta ação está disponível somente para contas ativas da equipe.');
+  if (payload?.action !== 'publish_execution_update') throw new Error('Ação de atualização técnica inválida.');
+  if (!portalUrl || !portalKey) throw new Error('A conexão do portal precisa ser configurada.');
+  if (!window.__getTeamSupportAccessToken) throw new Error('Entre novamente na plataforma da equipe.');
+  const token = await window.__getTeamSupportAccessToken();
+  if (!token) throw new Error('Sua sessão expirou. Entre novamente na plataforma da equipe.');
+  const response = await fetch(actionUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: portalKey, Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Não foi possível publicar a atualização técnica.');
+  return result;
+}
+
+async function callTechnicalDocumentFunction(payload) {
+  if (!hasTeamSupportAccess()) throw new Error('Esta ação está disponível somente para contas ativas da equipe.');
+  if (!['prepare_technical_document_upload', 'complete_technical_document_upload'].includes(payload?.action)) {
+    throw new Error('Ação de documento técnico inválida.');
+  }
+  if (!portalUrl || !portalKey) throw new Error('A conexão do portal precisa ser configurada.');
+  if (!window.__getTeamSupportAccessToken) throw new Error('Entre novamente na plataforma da equipe.');
+  const token = await window.__getTeamSupportAccessToken();
+  if (!token) throw new Error('Sua sessão expirou. Entre novamente na plataforma da equipe.');
+  const response = await fetch(actionUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: portalKey, Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Não foi possível enviar o arquivo técnico.');
+  return result;
+}
+
+function bindExecutionAttachments() {
+  if (!hasTeamSupportAccess()) return;
+  const fileInput = document.getElementById('executionAttachmentFile');
+  const titleInput = document.getElementById('executionAttachmentTitle');
+  const sendButton = document.getElementById('sendExecutionAttachment');
+  if (!fileInput || !titleInput || !sendButton || sendButton.dataset.bound) return;
+  sendButton.dataset.bound = '1';
+  fileInput.addEventListener('change', () => {
+    if (!titleInput.value.trim() && fileInput.files?.[0]) {
+      titleInput.value = fileInput.files[0].name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
+    }
+  });
+  sendButton.addEventListener('click', uploadExecutionAttachment);
+}
+
+async function uploadExecutionAttachment() {
+  const fileInput = document.getElementById('executionAttachmentFile');
+  const titleInput = document.getElementById('executionAttachmentTitle');
+  const status = document.getElementById('executionAttachmentStatus');
+  const button = document.getElementById('sendExecutionAttachment');
+  const file = fileInput?.files?.[0];
+  const title = safeText(titleInput?.value);
+  const execution = window.__cpPortalBridge?.getExecution();
+  const saved = window.__cpPortalBridge?.getSavedQuotes().find((row) => row.id === execution?.quoteId);
+  if (!file) { status.textContent = 'Escolha uma foto ou documento técnico.'; return; }
+  if (!saved?.q?.portal?.projectId) { status.textContent = 'Vincule uma proposta já liberada no portal.'; status.classList.add('error'); return; }
+  if (!title || title.length < 2) { status.textContent = 'Informe o nome que o cliente verá no portal.'; status.classList.add('error'); return; }
+  const contentType = documentMime(file);
+  if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
+    status.textContent = 'Envie PDF, JPG, PNG ou WEBP.'; status.classList.add('error'); return;
+  }
+  if (file.size <= 0 || file.size > maxDocumentBytes) { status.textContent = 'O arquivo deve ter até 15 MB.'; status.classList.add('error'); return; }
+  if (!confirm(`Enviar “${file.name}” e liberar para ${saved.q.client || 'o cliente'} consultar no portal?`)) return;
+  button.disabled = true;
+  status.classList.remove('error');
+  status.textContent = 'Preparando o envio privado…';
+  try {
+    if (!portalStorageClient) portalStorageClient = createClient(portalUrl, portalKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const prepared = await callTechnicalDocumentFunction({
+      action: 'prepare_technical_document_upload', code: saved.id, title,
+      fileName: file.name, contentType, size: file.size,
+    });
+    status.textContent = 'Enviando arquivo…';
+    const { error: uploadError } = await portalStorageClient.storage.from(documentBucket)
+      .uploadToSignedUrl(prepared.path, prepared.token, file, { contentType });
+    if (uploadError) throw uploadError;
+    await callTechnicalDocumentFunction({
+      action: 'complete_technical_document_upload', code: saved.id,
+      title, fileName: file.name, path: prepared.path,
+    });
+    status.textContent = 'Arquivo enviado. O cliente já pode consultá-lo no portal.';
+    fileInput.value = '';
+    titleInput.value = '';
+  } catch (error) {
+    status.textContent = error.message || 'Não foi possível enviar o arquivo.';
+    status.classList.add('error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function publishExecutionDiaryEntry(entry) {
+  const status = document.getElementById('executionLogStatus');
+  const execution = window.__cpPortalBridge?.getExecution();
+  const saved = window.__cpPortalBridge?.getSavedQuotes().find((row) => row.id === execution?.quoteId);
+  if (!saved?.q?.portal?.projectId) {
+    if (status) status.textContent = 'Registro salvo. Libere primeiro a proposta aprovada no portal para publicar ao cliente.';
+    return;
+  }
+  if (status) status.textContent = 'Publicando o resumo no portal do cliente…';
+  try {
+    await callExecutionUpdateFunction({
+      action: 'publish_execution_update',
+      code: saved.id,
+      stage: entry.stage,
+      date: entry.date,
+      message: entry.customer,
+    });
+    window.__cpPortalBridge?.updateExecutionDiary(entry.id, { published: true });
+    if (status) status.textContent = 'Resumo publicado no portal. As anotações internas continuam visíveis só para a equipe.';
+  } catch (error) {
+    if (status) status.textContent = error.message || 'Não foi possível publicar. O registro da visita continua salvo.';
+  }
+}
+
+function bindExecutionDiaryPublisher() {
+  if (!hasTeamSupportAccess()) return;
+  bindExecutionAttachments();
+  window.__cpPublishExecutionDiary = publishExecutionDiaryEntry;
+  const list = document.getElementById('executionDiaryList');
+  if (list && !list.dataset.publishBound) {
+    list.dataset.publishBound = '1';
+    list.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-republish-execution-log]');
+      if (!button) return;
+      const entry = window.__cpPortalBridge?.getExecution().diary?.find((row) => row.id === button.dataset.republishExecutionLog);
+      if (entry) publishExecutionDiaryEntry(entry);
+    });
+  }
 }
 
 function proposalSnapshot(saved) {

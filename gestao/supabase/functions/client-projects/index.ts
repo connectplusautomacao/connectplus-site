@@ -64,7 +64,7 @@ function cleanDocumentName(value: unknown) {
   return safe || 'documento';
 }
 
-async function prepareDocumentUpload(admin: ReturnType<typeof portal>, input: any) {
+async function prepareDocumentUpload(admin: ReturnType<typeof portal>, input: any, technicalOnly = false) {
   const code = String(input.code || '').trim();
   const title = String(input.title || '').trim().slice(0, 120);
   const fileName = cleanDocumentName(input.fileName);
@@ -72,6 +72,9 @@ async function prepareDocumentUpload(admin: ReturnType<typeof portal>, input: an
   const size = Number(input.size);
   const extensions = ALLOWED_DOCUMENT_TYPES[contentType];
   const extension = fileName.includes('.') ? `.${fileName.split('.').pop()!.toLowerCase()}` : '';
+  if (technicalOnly && !['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
+    throw new Error('Para anexos técnicos, envie PDF, JPG, PNG ou WEBP.');
+  }
   if (!code || !title || title.length < 2) throw new Error('Selecione o projeto e informe o nome do documento.');
   if (!extensions?.includes(extension)) throw new Error('Formato não permitido. Envie PDF, JPG, PNG, WEBP, DOCX, XLSX ou TXT.');
   if (!Number.isFinite(size) || size <= 0 || size > MAX_DOCUMENT_BYTES) throw new Error('O arquivo deve ter até 15 MB.');
@@ -85,12 +88,13 @@ async function prepareDocumentUpload(admin: ReturnType<typeof portal>, input: an
   return { path, token: data.token, projectId: project.id };
 }
 
-async function completeDocumentUpload(admin: ReturnType<typeof portal>, input: any) {
+async function completeDocumentUpload(admin: ReturnType<typeof portal>, input: any, technicalOnly = false) {
   const code = String(input.code || '').trim();
   const title = String(input.title || '').trim().slice(0, 120);
   const fileName = cleanDocumentName(input.fileName);
   const path = String(input.path || '');
   if (!code || !title || !path) throw new Error('Dados do documento incompletos.');
+  if (technicalOnly && !/\.(pdf|jpe?g|png|webp)$/i.test(fileName)) throw new Error('O anexo técnico precisa ser PDF, JPG, PNG ou WEBP.');
   const { data: project, error: projectError } = await admin.from('projects').select('id').eq('code', code).maybeSingle();
   if (projectError) throw projectError;
   if (!project || !path.startsWith(`${project.id}/`)) throw new Error('O documento não corresponde ao projeto selecionado.');
@@ -201,6 +205,49 @@ async function publishProgress(admin: ReturnType<typeof portal>, input: any) {
     });
     if (updateError) throw updateError;
   }
+  return { ok: true };
+}
+
+async function publishExecutionUpdate(admin: ReturnType<typeof portal>, input: any) {
+  const code = String(input.code || '').trim();
+  const stage = String(input.stage || '').trim().slice(0, 80);
+  const date = String(input.date || '').trim().slice(0, 10);
+  const message = String(input.message || '').trim().slice(0, 1200);
+  if (!code || !message) throw new Error('Selecione um projeto e escreva o resumo que será publicado.');
+  const allowedStages = ['Visita técnica', 'Elaboração do projeto', 'Documentação', 'Solicitação de materiais', 'Instalação', 'Configuração', 'Testes', 'Treinamento e entrega', 'Retorno técnico'];
+  if (!allowedStages.includes(stage)) throw new Error('Selecione uma etapa técnica válida.');
+  const { data: project, error: findError } = await admin.from('projects').select('id, progress').eq('code', code).maybeSingle();
+  if (findError || !project) throw findError || new Error('Projeto não liberado no portal.');
+  const stages: Record<string, { progress: number; status: string; nextStep: string }> = {
+    'Visita técnica': { progress: 10, status: 'Visita técnica', nextStep: 'Levantamento técnico realizado; a equipe seguirá com o projeto.' },
+    'Elaboração do projeto': { progress: 25, status: 'Preparação', nextStep: 'A equipe está elaborando o projeto técnico.' },
+    'Documentação': { progress: 40, status: 'Preparação', nextStep: 'A documentação do projeto está sendo organizada.' },
+    'Solicitação de materiais': { progress: 55, status: 'Preparação', nextStep: 'Os materiais necessários foram identificados e solicitados.' },
+    'Instalação': { progress: 75, status: 'Instalação', nextStep: 'A equipe está realizando a instalação dos equipamentos.' },
+    'Configuração': { progress: 85, status: 'Instalação', nextStep: 'A equipe está configurando os equipamentos e integrações.' },
+    'Testes': { progress: 95, status: 'Testes', nextStep: 'O sistema está em fase de testes e ajustes finais.' },
+    'Treinamento e entrega': { progress: 100, status: 'Concluído', nextStep: 'Instalação concluída; o cliente recebeu a demonstração e o treinamento.' },
+  };
+  const milestone = stages[stage];
+  const currentProgress = Math.max(0, Math.min(100, Number(project.progress) || 0));
+  if (milestone && milestone.progress >= currentProgress) {
+    const { error: progressError } = await admin.from('projects').update({
+      status: milestone.status,
+      progress: milestone.progress,
+      next_step: milestone.nextStep,
+      updated_at: new Date().toISOString(),
+    }).eq('id', project.id);
+    if (progressError) throw progressError;
+  }
+  const title = `Diário da obra · ${stage || 'Atualização técnica'}`.slice(0, 120);
+  const body = date ? `${date}\n\n${message}` : message;
+  const { error } = await admin.from('project_updates').insert({
+    project_id: project.id,
+    title,
+    message: body,
+    visible_to_client: true,
+  });
+  if (error) throw error;
   return { ok: true };
 }
 
@@ -321,9 +368,14 @@ Deno.serve(async (request) => {
     }
     const staff = await authenticateStaff(request);
     const isSupportAction = ['support_list', 'support_update'].includes(action);
-    if (!isSupportAction && !['owner', 'admin'].includes(staff.role)) throw new Error('Forbidden');
+    const isExecutionUpdate = action === 'publish_execution_update';
+    const isTechnicalDocumentAction = ['prepare_technical_document_upload', 'complete_technical_document_upload'].includes(action);
+    if (!isSupportAction && !isExecutionUpdate && !isTechnicalDocumentAction && !['owner', 'admin'].includes(staff.role)) throw new Error('Forbidden');
     if (input.action === 'provision') return json(await provisionProject(admin, input));
     if (input.action === 'publish_progress') return json(await publishProgress(admin, input));
+    if (input.action === 'publish_execution_update') return json(await publishExecutionUpdate(admin, input));
+    if (input.action === 'prepare_technical_document_upload') return json(await prepareDocumentUpload(admin, input, true));
+    if (input.action === 'complete_technical_document_upload') return json(await completeDocumentUpload(admin, input, true));
     if (input.action === 'prepare_document_upload') return json(await prepareDocumentUpload(admin, input));
     if (input.action === 'complete_document_upload') return json(await completeDocumentUpload(admin, input));
     if (input.action === 'support_list' || input.action === 'support_update') return json(await supportRequests(admin, input));
