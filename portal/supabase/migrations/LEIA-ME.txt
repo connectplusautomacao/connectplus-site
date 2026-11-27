@@ -4,6 +4,10 @@ O arquivo 202611270001_client_portal_signatures.sql pertence exclusivamente
 ao Supabase usado pelo Portal do Cliente (pseknwikhzfkqqgnevwt). Não execute
 esta migração no projeto interno “ConnectPlus Gestão Interna”.
 
+A migração 202611270002_support_request_update_timestamp.sql também pertence
+somente a este projeto. Ela preserva updated_at nos chamados para exibir o
+histórico e detectar respostas/status alterados pela equipe.
+
 O registro é uma assinatura eletrônica simples vinculada à conta autenticada.
 Ele preserva o nome informado, o e-mail da conta, o documento, o hash SHA-256,
 o texto de consentimento, a data e o navegador. O cliente só pode assinar
