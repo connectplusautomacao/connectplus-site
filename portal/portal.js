@@ -14,6 +14,65 @@ let passwordRecoveryActive = false;
 let firstAccessInviteActive = false;
 let projectLoadGeneration = 0;
 let currentUser = null;
+let pendingUpdateNotices = [];
+
+function updateFingerprint(update) {
+  return [update.created_at || '', update.title || '', update.message || ''].join('|');
+}
+
+function updateSeenKey(userId, projectId) {
+  return `connectplus.portal.updates.${userId}.${projectId}`;
+}
+
+function findUnseenUpdates(userId, projectId, updates) {
+  const key = updateSeenKey(userId, projectId);
+  const fingerprints = updates.map(updateFingerprint);
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved === null) {
+      // Establish a baseline on the first visit, so old updates are not shown as new.
+      localStorage.setItem(key, JSON.stringify(fingerprints.slice(0, 100)));
+      return [];
+    }
+    const seen = new Set(JSON.parse(saved));
+    return updates.filter((update) => !seen.has(updateFingerprint(update)));
+  } catch {
+    return [];
+  }
+}
+
+function markPendingUpdatesSeen() {
+  for (const notice of pendingUpdateNotices) {
+    const key = updateSeenKey(currentUser.id, notice.projectId);
+    try {
+      const saved = localStorage.getItem(key);
+      const seen = new Set(saved ? JSON.parse(saved) : []);
+      for (const fingerprint of notice.fingerprints) seen.add(fingerprint);
+      localStorage.setItem(key, JSON.stringify([...seen].slice(-100)));
+    } catch {
+      // The portal still works if this browser blocks local storage.
+    }
+  }
+  pendingUpdateNotices = [];
+}
+
+function showUpdateNotice() {
+  const notice = $('updateNotice');
+  if (!pendingUpdateNotices.length) {
+    notice.classList.add('hidden');
+    return;
+  }
+  const count = pendingUpdateNotices.reduce((total, item) => total + item.fingerprints.length, 0);
+  $('updateNoticeText').textContent = count === 1
+    ? 'Há uma nova atualização em um dos seus projetos.'
+    : `Há ${count} novas atualizações nos seus projetos.`;
+  notice.classList.remove('hidden');
+}
+
+function dismissUpdateNotice() {
+  markPendingUpdatesSeen();
+  $('updateNotice').classList.add('hidden');
+}
 
 function setMessage(id, message, isError = false) {
   const el = $(id);
@@ -81,7 +140,7 @@ function addEmpty(container, message) {
   container.append(box);
 }
 
-function renderProject(project, updates, documents) {
+function renderProject(project, updates, documents, unseenFingerprints = []) {
   const node = $('projectTemplate').content.firstElementChild.cloneNode(true);
   node.querySelector('[data-field="code"]').textContent = project.code;
   node.querySelector('[data-field="title"]').textContent = project.title;
@@ -129,12 +188,25 @@ function renderProject(project, updates, documents) {
   }
 
   const updatesBox = node.querySelector('[data-field="updates"]');
+  updatesBox.id = `updates-${String(project.id).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  node.querySelector('[data-field="updatesCount"]').textContent = `${updates.length} ${updates.length === 1 ? 'registro' : 'registros'}`;
   if (!updates.length) addEmpty(updatesBox, 'Nenhuma atualização publicada até o momento.');
-  for (const update of updates) {
+  for (const [index, update] of updates.entries()) {
     const item = $('updateTemplate').content.firstElementChild.cloneNode(true);
+    const isNew = unseenFingerprints.includes(updateFingerprint(update));
+    item.classList.toggle('update-new', isNew);
+    item.classList.toggle('update-latest', index === 0 && !isNew);
     item.querySelector('[data-field="title"]').textContent = update.title;
     item.querySelector('[data-field="message"]').textContent = update.message;
     item.querySelector('[data-field="date"]').textContent = formatDate(update.created_at?.slice(0, 10));
+    const badge = item.querySelector('[data-field="badge"]');
+    if (isNew) {
+      badge.textContent = 'Nova';
+      badge.hidden = false;
+    } else if (index === 0) {
+      badge.textContent = 'Mais recente';
+      badge.hidden = false;
+    }
     updatesBox.append(item);
   }
 
@@ -240,6 +312,7 @@ async function loadProjects(user) {
   if (membershipError) throw membershipError;
   if (requestGeneration !== projectLoadGeneration) return;
   const projects = (memberships || []).map((m) => m.projects).filter(Boolean);
+  pendingUpdateNotices = [];
   if (!projects.length) {
     addEmpty($('projectList'), 'Nenhum projeto foi liberado para esta conta. Se precisar de ajuda, fale com a Connect Plus.');
     return;
@@ -251,8 +324,16 @@ async function loadProjects(user) {
     ]);
     if (updatesError || docsError) throw updatesError || docsError;
     if (requestGeneration !== projectLoadGeneration) return;
-    renderProject(project, updates || [], docs || []);
+    const unseen = findUnseenUpdates(user.id, project.id, updates || []);
+    if (unseen.length) {
+      pendingUpdateNotices.push({
+        projectId: project.id,
+        fingerprints: unseen.map(updateFingerprint),
+      });
+    }
+    renderProject(project, updates || [], docs || [], unseen.map(updateFingerprint));
   }
+  showUpdateNotice();
 }
 
 function showError(message) {
@@ -388,6 +469,15 @@ $('logoutButton').addEventListener('click', async () => {
   $('password').value = '';
   showLogin();
 });
+
+$('updateNoticeView').addEventListener('click', () => {
+  const firstProjectId = pendingUpdateNotices[0]?.projectId;
+  dismissUpdateNotice();
+  if (!firstProjectId) return;
+  document.getElementById(`updates-${String(firstProjectId).replace(/[^a-zA-Z0-9_-]/g, '-')}`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+$('updateNoticeDismiss').addEventListener('click', dismissUpdateNotice);
 
 init().catch(() => {
   configWarning.classList.remove('hidden');
