@@ -208,7 +208,7 @@ function mapProgress(execution) {
     'Aguardando material': ['Preparação', 35, 'A execução está aguardando a chegada de material.'],
     'Aguardando cliente': ['Preparação', 40, 'A equipe aguarda uma confirmação para continuar.'],
     Concluída: ['Concluído', 100, 'A execução foi concluída.'],
-    'Concluída com pendências': ['Concluído com pendências', 95, 'A equipe concluiu a etapa principal e registrou pendências para acompanhamento.'],
+    'Concluída com pendências': ['Concluído com pendências', 100, 'Serviço concluído com sucesso. Eventuais pendências foram registradas para acompanhamento separado e não alteram a conclusão do projeto.'],
   };
   const [status, progress, nextStep] = map[execution.status] || map.Agendada;
   return { status, progress, nextStep };
