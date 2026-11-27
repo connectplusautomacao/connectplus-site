@@ -227,8 +227,63 @@ function renderProject(project, updates, documents, unseenFingerprints = []) {
   }
   $('projectList').append(node);
   const form = node.querySelector('[data-field="supportForm"]');
+  enhanceSupportSection(node);
   form.addEventListener('submit', (event) => submitSupport(event, project.id, node));
   loadSupportHistory(project.id, node);
+}
+
+function enhanceSupportSection(projectNode) {
+  const section = projectNode.querySelector('.support-section');
+  const form = section.querySelector('[data-field="supportForm"]');
+  const history = section.querySelector('[data-field="supportHistory"]');
+  section.classList.add('support-center');
+  section.querySelector('h3').textContent = 'Central de suporte';
+  const intro = section.querySelector('.sub');
+  intro.textContent = 'Envie sua solicitação e acompanhe o atendimento por aqui.';
+
+  const workspace = document.createElement('div');
+  workspace.className = 'support-workspace';
+  const formCard = document.createElement('div');
+  formCard.className = 'support-form-card';
+  const formTitle = document.createElement('h4');
+  formTitle.textContent = 'Nova solicitação';
+  formCard.append(formTitle, form);
+
+  const side = document.createElement('aside');
+  side.className = 'support-side';
+  const steps = document.createElement('section');
+  steps.className = 'support-steps-card';
+  const stepsTitle = document.createElement('h4');
+  stepsTitle.textContent = 'Etapas do atendimento';
+  steps.append(stepsTitle);
+  for (const [index, label] of ['Recebido', 'Em análise', 'Em atendimento', 'Concluído'].entries()) {
+    const step = document.createElement('p');
+    step.className = 'support-step';
+    const number = document.createElement('span');
+    number.textContent = String(index + 1);
+    const text = document.createElement('span');
+    text.textContent = label;
+    step.append(number, text);
+    steps.append(step);
+  }
+  side.append(steps, history);
+  workspace.append(formCard, side);
+  section.append(workspace);
+
+  const phoneLabel = form.querySelector('label:nth-of-type(2)');
+  if (phoneLabel) phoneLabel.firstChild.textContent = 'Telefone para retorno (opcional)';
+  const descriptionLabel = form.querySelector('label:nth-of-type(3)');
+  if (descriptionLabel) descriptionLabel.firstChild.textContent = 'Descreva o que aconteceu';
+  const textarea = form.querySelector('textarea');
+  if (textarea) textarea.placeholder = 'Ex.: a luz da sala não responde pelo aplicativo desde ontem.';
+  form.querySelector('button[type="submit"]').textContent = 'Enviar solicitação';
+}
+
+function supportStatusClass(status) {
+  const normalized = String(status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (normalized === 'concluido') return 'done';
+  if (normalized === 'em analise' || normalized === 'em atendimento') return 'progress';
+  return 'received';
 }
 
 function formatCurrency(value) {
@@ -241,13 +296,30 @@ async function loadSupportHistory(projectId, node) {
     .eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(5);
   const box = node.querySelector('[data-field="supportHistory"]');
   box.replaceChildren();
-  if (error || !data?.length) return;
+  box.classList.add('support-history-card');
   const title = document.createElement('h4');
-  title.textContent = 'Suas solicitações recentes';
+  title.textContent = 'Seus atendimentos';
   box.append(title);
+  if (error || !data?.length) {
+    const empty = document.createElement('p');
+    empty.className = 'support-history-empty';
+    empty.textContent = error ? 'Não foi possível carregar o histórico agora.' : 'As solicitações enviadas aparecerão aqui.';
+    box.append(empty);
+    return;
+  }
   for (const request of data) {
-    const row = document.createElement('p');
-    row.textContent = `${request.subject} · ${request.status} · ${formatDate(request.created_at?.slice(0, 10))}`;
+    const row = document.createElement('article');
+    row.className = 'support-history-row';
+    const summary = document.createElement('div');
+    const subject = document.createElement('strong');
+    subject.textContent = request.subject || 'Solicitação de suporte';
+    const date = document.createElement('small');
+    date.textContent = formatDate(request.created_at?.slice(0, 10));
+    summary.append(subject, date);
+    const status = document.createElement('span');
+    status.className = `support-status ${supportStatusClass(request.status)}`;
+    status.textContent = request.status || 'Recebido';
+    row.append(summary, status);
     box.append(row);
   }
 }
@@ -260,7 +332,7 @@ async function submitSupport(event, projectId, node) {
   const messageBox = node.querySelector('[data-field="supportMessage"]');
   button.disabled = true;
   messageBox.textContent = 'Enviando sua solicitação…';
-  messageBox.classList.remove('error');
+  messageBox.classList.remove('error', 'success');
   try {
     const { error } = await client.from('support_requests').insert({
       project_id: projectId,
@@ -272,6 +344,7 @@ async function submitSupport(event, projectId, node) {
     if (error) throw error;
     form.reset();
     messageBox.textContent = 'Solicitação enviada. A equipe Connect Plus poderá acompanhar o atendimento.';
+    messageBox.classList.add('success');
     await loadSupportHistory(projectId, node);
   } catch {
     messageBox.textContent = 'Não foi possível enviar agora. Verifique sua conexão e tente novamente.';

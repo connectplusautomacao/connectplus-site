@@ -9,6 +9,12 @@ const maxDocumentBytes = 15 * 1024 * 1024;
 const safeText = (value) => String(value ?? '').trim();
 let portalStorageClient = null;
 let portalControlsInitialized = false;
+let supportControlsInitialized = false;
+let supportPollTimer = null;
+let supportRequestsCache = [];
+let supportUnseenIds = new Set();
+let supportSeenStorageKey = '';
+let supportFilter = 'open';
 let portalRole = null;
 let quoteObserver = null;
 let documentProjectObserver = null;
@@ -16,6 +22,10 @@ let quoteClickHandler = null;
 
 function hasPortalAdminAccess() {
   return portalRole === 'owner' || portalRole === 'admin';
+}
+
+function hasTeamSupportAccess() {
+  return ['owner', 'admin', 'technician'].includes(portalRole);
 }
 
 function removePortalControls() {
@@ -30,17 +40,29 @@ function removePortalControls() {
     delete quotes.dataset.portalBound;
   }
   document.getElementById('publishPortalProgress')?.closest('.portal-progress-controls')?.remove();
-  document.getElementById('portalSupportAdmin')?.remove();
+  document.getElementById('portalSupportInbox')?.remove();
   document.getElementById('portalDocumentUpload')?.remove();
+  if (supportPollTimer) clearInterval(supportPollTimer);
+  supportPollTimer = null;
+  supportControlsInitialized = false;
+  supportRequestsCache = [];
+  supportUnseenIds = new Set();
+  supportSeenStorageKey = '';
+  const supportBadge = document.getElementById('supportOpenBadge');
+  if (supportBadge) { supportBadge.hidden = true; supportBadge.textContent = ''; }
   portalControlsInitialized = false;
 }
 
 function setPortalRole(role) {
   portalRole = role;
-  if (!hasPortalAdminAccess()) {
-    removePortalControls();
-    return;
+  if (!hasPortalAdminAccess()) removePortalControls();
+  if (!hasTeamSupportAccess()) return;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSupportControls, { once: true });
+  } else {
+    initSupportControls();
   }
+  if (!hasPortalAdminAccess()) return;
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
@@ -78,6 +100,23 @@ async function callFunction(payload) {
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error || 'Não foi possível completar a sincronização.');
+  return result;
+}
+
+async function callSupportFunction(payload) {
+  if (!hasTeamSupportAccess()) throw new Error('Esta área está disponível somente para contas ativas da equipe.');
+  if (!['support_list', 'support_update'].includes(payload?.action)) throw new Error('Ação de suporte inválida.');
+  if (!portalUrl || !portalKey) throw new Error('A conexão do portal precisa ser configurada.');
+  if (!window.__getTeamSupportAccessToken) throw new Error('Entre novamente na plataforma da equipe.');
+  const token = await window.__getTeamSupportAccessToken();
+  if (!token) throw new Error('Sua sessão expirou. Entre novamente na plataforma da equipe.');
+  const response = await fetch(actionUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: portalKey, Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Não foi possível carregar as solicitações de suporte.');
   return result;
 }
 
@@ -198,14 +237,153 @@ async function publishExecution() {
 }
 
 function supportPanel() {
-  const panel = document.getElementById('executionPanel');
-  if (!panel || document.getElementById('portalSupportAdmin')) return;
+  const host = document.getElementById('supportPanelContent');
+  if (!host || document.getElementById('portalSupportInbox')) return;
   const section = document.createElement('section');
-  section.id = 'portalSupportAdmin';
-  section.className = 'card portal-support-admin';
-  section.innerHTML = '<h2>Solicitações de suporte do portal</h2><p class="hint">Pedidos enviados pelos clientes, restritos à equipe autorizada.</p><button type="button" class="button secondary" id="refreshPortalSupport">Atualizar solicitações</button><div id="portalSupportList" class="saved-list"></div>';
-  panel.append(section);
-  document.getElementById('refreshPortalSupport').addEventListener('click', loadSupportRequests);
+  section.id = 'portalSupportInbox';
+  section.className = 'card support-inbox';
+  section.innerHTML = '<div class="support-inbox-head"><div><p class="eyebrow">ATENDIMENTO AO CLIENTE</p><h2>Central de atendimentos</h2><p class="hint">Acompanhe solicitações abertas e atualize o andamento de cada chamado.</p></div><button type="button" class="button secondary" id="refreshPortalSupport">Atualizar lista</button></div><div class="support-stats"><div class="support-stat open"><small>Solicitações em aberto</small><strong id="supportOpenCount">—</strong></div><div class="support-stat new"><small>Novas desde sua última visita</small><strong id="supportNewCount">—</strong></div><div class="support-stat"><small>Concluídas</small><strong id="supportDoneCount">—</strong></div></div><div class="support-filters" role="group" aria-label="Filtrar solicitações"><button type="button" class="support-filter" data-support-filter="all">Todas</button><button type="button" class="support-filter active" data-support-filter="open">Em aberto</button><button type="button" class="support-filter" data-support-filter="done">Concluídas</button></div><div id="portalSupportList" class="support-ticket-list" aria-live="polite">Carregando solicitações…</div>';
+  const toast = document.createElement('aside');
+  toast.id = 'supportTicketToast';
+  toast.className = 'support-ticket-toast';
+  toast.hidden = true;
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.innerHTML = '<span aria-hidden="true">✦</span><div><strong>Novo chamado recebido</strong><p id="supportTicketToastText"></p></div><button type="button" id="supportTicketToastButton">Ver chamado</button>';
+  host.append(section, toast);
+  document.getElementById('refreshPortalSupport').addEventListener('click', () => loadSupportRequests());
+  section.querySelectorAll('[data-support-filter]').forEach((button) => button.addEventListener('click', () => {
+    supportFilter = button.dataset.supportFilter;
+    renderSupportRequests();
+  }));
+  document.getElementById('supportTicketToastButton').addEventListener('click', () => {
+    markSupportRequestsSeen();
+    document.getElementById('supportPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function decodeSupportToken(token) {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(payload), (char) => char.charCodeAt(0))));
+  } catch { return {}; }
+}
+
+function supportStatusClass(status) {
+  const normalized = String(status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (normalized === 'concluido') return 'done';
+  if (normalized === 'em analise' || normalized === 'em atendimento') return 'progress';
+  return 'received';
+}
+
+function isSupportRequestOpen(request) {
+  const status = String(request.status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return status !== 'concluido';
+}
+
+function markSupportRequestsSeen() {
+  if (supportSeenStorageKey) {
+    try {
+      const saved = localStorage.getItem(supportSeenStorageKey);
+      const seen = new Set(saved ? JSON.parse(saved) : []);
+      supportRequestsCache.forEach((request) => seen.add(String(request.id)));
+      localStorage.setItem(supportSeenStorageKey, JSON.stringify([...seen].slice(-500)));
+    } catch { /* The queue remains usable if local storage is blocked. */ }
+  }
+  supportUnseenIds.clear();
+  const toast = document.getElementById('supportTicketToast');
+  if (toast) toast.hidden = true;
+  renderSupportRequests();
+}
+
+window.__cpMarkSupportSeen = markSupportRequestsSeen;
+
+function renderSupportRequests() {
+  const list = document.getElementById('portalSupportList');
+  if (!list) return;
+  list.replaceChildren();
+  const requests = [...supportRequestsCache].sort((a, b) => {
+    const openDiff = Number(isSupportRequestOpen(b)) - Number(isSupportRequestOpen(a));
+    return openDiff || String(b.created_at || '').localeCompare(String(a.created_at || ''));
+  });
+  const visible = requests.filter((request) => supportFilter === 'all'
+    || (supportFilter === 'open' && isSupportRequestOpen(request))
+    || (supportFilter === 'done' && !isSupportRequestOpen(request)));
+  document.querySelectorAll('[data-support-filter]').forEach((button) => {
+    button.classList.toggle('active', button.dataset.supportFilter === supportFilter);
+    const count = button.dataset.supportFilter === 'all' ? requests.length
+      : button.dataset.supportFilter === 'open' ? requests.filter(isSupportRequestOpen).length
+        : requests.filter((request) => !isSupportRequestOpen(request)).length;
+    const label = { all: 'Todas', open: 'Em aberto', done: 'Concluídas' }[button.dataset.supportFilter];
+    button.textContent = `${label} · ${count}`;
+  });
+  if (!visible.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = supportFilter === 'open' ? 'Nenhuma solicitação em aberto.' : 'Nenhuma solicitação nesta lista.';
+    list.append(empty);
+    return;
+  }
+  for (const request of visible) {
+    const card = document.createElement('article');
+    card.className = `support-admin-row${supportUnseenIds.has(String(request.id)) ? ' is-new' : ''}`;
+    const head = document.createElement('div');
+    head.className = 'support-admin-row-head';
+    const title = document.createElement('strong');
+    title.textContent = `${request.projects?.code || 'Projeto'} · ${request.subject || 'Solicitação de suporte'}`;
+    const badges = document.createElement('div');
+    if (supportUnseenIds.has(String(request.id))) {
+      const fresh = document.createElement('span');
+      fresh.className = 'support-ticket-state new';
+      fresh.textContent = 'Nova';
+      badges.append(fresh);
+    }
+    const state = document.createElement('span');
+    state.className = `support-ticket-state ${supportStatusClass(request.status)}`;
+    state.textContent = request.status || 'Recebido';
+    badges.append(state);
+    head.append(title, badges);
+
+    const message = document.createElement('p');
+    message.textContent = request.message || 'O cliente não incluiu detalhes adicionais.';
+    const contact = document.createElement('div');
+    contact.className = 'support-admin-meta';
+    const customer = document.createElement('span');
+    customer.textContent = `Cliente: ${request.client_email || 'e-mail não disponível'}`;
+    const phone = document.createElement('span');
+    phone.textContent = request.contact_phone ? `Telefone: ${request.contact_phone}` : 'Telefone não informado';
+    const date = document.createElement('span');
+    date.textContent = request.created_at ? new Date(request.created_at).toLocaleString('pt-BR') : '';
+    contact.append(customer, phone, date);
+
+    const actions = document.createElement('div');
+    actions.className = 'support-admin-actions';
+    const status = document.createElement('select');
+    status.setAttribute('aria-label', 'Situação da solicitação');
+    for (const value of ['Recebido', 'Em análise', 'Em atendimento', 'Concluído']) status.add(new Option(value, value));
+    status.value = request.status || 'Recebido';
+    const note = document.createElement('textarea');
+    note.maxLength = 1000;
+    note.placeholder = 'Nota interna para a equipe (não aparece ao cliente)';
+    note.value = request.staff_note || '';
+    const save = document.createElement('button');
+    save.type = 'button'; save.className = 'button secondary'; save.textContent = 'Salvar atendimento';
+    const feedback = document.createElement('small');
+    feedback.setAttribute('role', 'status');
+    save.addEventListener('click', async () => {
+      save.disabled = true;
+      feedback.textContent = 'Salvando…';
+      try {
+        await callSupportFunction({ action: 'support_update', id: request.id, status: status.value, staffNote: note.value });
+        feedback.textContent = 'Atendimento atualizado.';
+        await loadSupportRequests({ quiet: true });
+      } catch (error) { feedback.textContent = error.message || 'Não foi possível salvar.'; }
+      finally { save.disabled = false; }
+    });
+    actions.append(status, note, save);
+    card.append(head, message, contact, actions, feedback);
+    list.append(card);
+  }
 }
 
 function releasedQuotes() {
@@ -302,52 +480,69 @@ async function uploadProjectDocument(event) {
   }
 }
 
-async function loadSupportRequests() {
+async function loadSupportRequests(options = {}) {
   const list = document.getElementById('portalSupportList');
   if (!list) return;
-  list.textContent = 'Carregando solicitações…';
-  try {
-    const { requests = [] } = await callFunction({ action: 'support_list' });
-    list.replaceChildren();
-    if (!requests.length) {
-      list.textContent = 'Ainda não há solicitações de suporte.';
-      return;
-    }
-    for (const request of requests) {
-      const card = document.createElement('article');
-      card.className = 'support-admin-row';
-      const heading = document.createElement('strong');
-      heading.textContent = `${request.projects?.code || 'Projeto'} · ${request.subject}`;
-      const body = document.createElement('p');
-      body.textContent = request.message;
-      const phone = document.createElement('p');
-      phone.textContent = request.contact_phone ? `Telefone para retorno: ${request.contact_phone}` : 'Cliente não informou telefone para retorno.';
-      const email = document.createElement('p');
-      email.textContent = `Acesso do cliente: ${request.client_email || 'e-mail não disponível'}`;
-      const status = document.createElement('select');
-      for (const value of ['Recebido', 'Em análise', 'Em atendimento', 'Concluído']) {
-        const option = document.createElement('option'); option.value = value; option.textContent = value; status.append(option);
-      }
-      status.value = request.status;
-      const note = document.createElement('textarea');
-      note.maxLength = 1000; note.placeholder = 'Nota interna (não aparece ao cliente)'; note.value = request.staff_note || '';
-      const save = document.createElement('button');
-      save.type = 'button'; save.className = 'button secondary'; save.textContent = 'Salvar atendimento';
-      const feedback = document.createElement('small');
-      save.addEventListener('click', async () => {
-        save.disabled = true;
-        try {
-          await callFunction({ action: 'support_update', id: request.id, status: status.value, staffNote: note.value });
-          feedback.textContent = 'Atendimento atualizado.';
-        } catch (error) { feedback.textContent = error.message || 'Não foi possível salvar.'; }
-        finally { save.disabled = false; }
-      });
-      card.append(heading, body, email, phone, status, note, save, feedback);
-      list.append(card);
-    }
-  } catch (error) {
-    list.textContent = error.message || 'Não foi possível carregar as solicitações.';
+  const refreshButton = document.getElementById('refreshPortalSupport');
+  if (!options.quiet) {
+    list.textContent = 'Carregando solicitações…';
+    if (refreshButton) { refreshButton.disabled = true; refreshButton.textContent = 'Atualizando…'; }
   }
+  try {
+    const { requests = [] } = await callSupportFunction({ action: 'support_list' });
+    const token = await window.__getTeamSupportAccessToken();
+    const claims = decodeSupportToken(token);
+    supportSeenStorageKey = `connectplus.support.seen.${claims.sub || claims.email || portalRole || 'team'}`;
+    let savedSeen = null;
+    let seen = new Set();
+    try {
+      savedSeen = localStorage.getItem(supportSeenStorageKey);
+      if (savedSeen) seen = new Set(JSON.parse(savedSeen));
+    } catch { savedSeen = null; seen = new Set(); }
+    if (savedSeen === null) {
+      requests.forEach((request) => seen.add(String(request.id)));
+      try { localStorage.setItem(supportSeenStorageKey, JSON.stringify([...seen].slice(-500))); } catch { /* no persistent notification marker */ }
+    }
+    supportRequestsCache = requests;
+    supportUnseenIds = new Set(requests.filter((request) => !seen.has(String(request.id))).map((request) => String(request.id)));
+    const openCount = requests.filter(isSupportRequestOpen).length;
+    const doneCount = requests.length - openCount;
+    const openCounter = document.getElementById('supportOpenCount');
+    const newCounter = document.getElementById('supportNewCount');
+    const doneCounter = document.getElementById('supportDoneCount');
+    if (openCounter) openCounter.textContent = String(openCount);
+    if (newCounter) newCounter.textContent = String(supportUnseenIds.size);
+    if (doneCounter) doneCounter.textContent = String(doneCount);
+    const navBadge = document.getElementById('supportOpenBadge');
+    if (navBadge) {
+      navBadge.textContent = String(openCount);
+      navBadge.hidden = openCount < 1;
+      navBadge.setAttribute('aria-label', `${openCount} solicitação(ões) em aberto`);
+    }
+    const toast = document.getElementById('supportTicketToast');
+    if (toast) {
+      toast.hidden = supportUnseenIds.size < 1;
+      document.getElementById('supportTicketToastText').textContent = supportUnseenIds.size === 1
+        ? 'Um cliente enviou uma solicitação de suporte.'
+        : `${supportUnseenIds.size} novos chamados aguardam a equipe.`;
+    }
+    renderSupportRequests();
+  } catch (error) {
+    if (!supportRequestsCache.length || !options.quiet) list.textContent = error.message || 'Não foi possível carregar as solicitações.';
+  } finally {
+    if (refreshButton) { refreshButton.disabled = false; refreshButton.textContent = 'Atualizar lista'; }
+  }
+}
+
+function initSupportControls() {
+  if (!hasTeamSupportAccess() || supportControlsInitialized) return;
+  supportControlsInitialized = true;
+  supportPanel();
+  loadSupportRequests();
+  if (supportPollTimer) clearInterval(supportPollTimer);
+  supportPollTimer = setInterval(() => {
+    if (document.visibilityState === 'visible') loadSupportRequests({ quiet: true });
+  }, 45_000);
 }
 
 function mountExecutionControls() {
@@ -360,7 +555,6 @@ function mountExecutionControls() {
   toolbar.innerHTML = '<button id="publishPortalProgress" type="button" class="button primary">Publicar andamento no portal</button><span id="portalProgressStatus" class="save-status portal-sync-status" role="status"></span>';
   firstCard.append(toolbar);
   document.getElementById('publishPortalProgress').addEventListener('click', publishExecution);
-  supportPanel();
   documentUploadPanel();
 }
 
@@ -381,6 +575,7 @@ function bindQuoteActions() {
 function init() {
   if (portalControlsInitialized || !hasPortalAdminAccess() || !portalUrl || !portalKey) return;
   portalControlsInitialized = true;
+  initSupportControls();
   // The portal key is publishable and can only invoke an Edge Function that
   // separately validates the logged-in internal-team JWT.
   bindQuoteActions();

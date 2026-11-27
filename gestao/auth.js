@@ -623,6 +623,14 @@ if (!cfg.url || cfg.url.includes('COLE_') || !cfg.publishableKey || cfg.publisha
     if (error) throw error;
     return data.session?.access_token || null;
   };
+  // The support queue sends this same staff JWT to its own server-side role check.
+  // It does not grant a technician access to proposal publishing or document management.
+  window.__getTeamSupportAccessToken = async () => {
+    if (!['owner', 'admin', 'technician'].includes(memberRole)) throw new Error('Somente membros ativos da equipe podem acessar o suporte.');
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return data.session?.access_token || null;
+  };
   showGate();
   supabase.auth.getSession().then(({ data }) => data.session ? loadSecureState() : say('Entre com a conta da equipe autorizada.'));
   supabase.auth.onAuthStateChange((event, session) => {
