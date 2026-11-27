@@ -151,7 +151,14 @@ async function provisionProject(admin: ReturnType<typeof portal>, input: any) {
   let inviteSent = false;
   if (!user) {
     const portalUrl = required('PORTAL_SITE_URL').replace(/\/$/, '') + '/';
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: portalUrl });
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: portalUrl,
+      data: {
+        full_name: String(proposal.client || '').slice(0, 180),
+        project_code: code,
+        project_title: String(proposal.title || `Automação residencial · ${proposal.client || code}`).slice(0, 180),
+      },
+    });
     if (error) throw error;
     user = data.user;
     inviteSent = true;

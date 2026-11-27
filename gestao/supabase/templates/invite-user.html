@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>Seu acesso ao Portal do Cliente Connect Plus</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#eef4fa;font-family:Arial,Helvetica,sans-serif;color:#10233e;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#eef4fa;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background-color:#ffffff;border-radius:14px;overflow:hidden;">
+            <tr>
+              <td style="padding:22px 28px;background-color:#081a33;">
+                <div style="font-size:24px;line-height:1.1;font-weight:bold;color:#ffffff;">Connect <span style="color:#00b9d5;">Plus</span></div>
+                <div style="padding-top:5px;font-size:10px;letter-spacing:1.5px;font-weight:bold;color:#bfd2e6;">AUTOMAÇÃO RESIDENCIAL</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:30px 30px 24px;">
+                <div style="font-size:11px;letter-spacing:1.6px;font-weight:bold;text-transform:uppercase;color:#008fb6;">Acesso ao Portal do Cliente</div>
+                <h1 style="margin:10px 0 14px;font-size:25px;line-height:1.25;color:#10233e;">Seu projeto, acompanhado de perto.</h1>
+                <p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:#4d627c;">Olá, {{ if .Data.full_name }}{{ .Data.full_name }}{{ else }}cliente{{ end }}!</p>
+                <p style="margin:0 0 18px;font-size:14px;line-height:1.65;color:#4d627c;">A Connect Plus liberou seu acesso ao portal. Por lá, você pode acompanhar as etapas do projeto, consultar documentos e conversar com nossa equipe.</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0;background-color:#f3f8fc;border-left:3px solid #00b9d5;border-radius:0 8px 8px 0;">
+                  <tr>
+                    <td style="padding:14px 16px;">
+                      <div style="font-size:14px;font-weight:bold;line-height:1.5;color:#10233e;">{{ if .Data.project_title }}{{ .Data.project_title }}{{ else }}Projeto Connect Plus{{ end }}</div>
+                      {{ if .Data.project_code }}<div style="padding-top:4px;font-size:12px;color:#617690;">Código do projeto: {{ .Data.project_code }}</div>{{ end }}
+                    </td>
+                  </tr>
+                </table>
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:24px auto 16px;">
+                  <tr>
+                    <td align="center" bgcolor="#087fe8" style="border-radius:9px;">
+                      <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 24px;border:1px solid #087fe8;border-radius:9px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;">Ativar meu acesso ao portal</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:0;text-align:center;font-size:12px;line-height:1.6;color:#74879d;">Use o botão acima para confirmar seu acesso e definir sua senha.<br>Se você não esperava este convite, pode ignorar esta mensagem.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 30px 22px;border-top:1px solid #e5edf4;background-color:#fbfdff;">
+                <p style="margin:0;font-size:12px;line-height:1.65;color:#687d96;">Atenciosamente,<br><strong style="color:#10233e;">Equipe Connect Plus</strong><br>Tecnologia que se adapta a você.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
