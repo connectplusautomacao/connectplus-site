@@ -59,8 +59,8 @@
     <form id="resetPasswordForm" hidden><label for="newPassword">Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Pelo menos 10 caracteres"><button type="submit" class="secure-primary">Salvar nova senha</button></form>
     <p id="gateMessage" class="secure-message">Preparando acesso seguro…</p>
     <div id="importChoice" class="import-choice" hidden>
-      <strong>Primeira configuração</strong>
-      <p>Não há dados na nuvem ainda. Primeiro baixe uma cópia deste notebook. Depois você escolhe se importa os dados locais ou inicia vazio.</p>
+      <strong id="importTitle">Primeira configuração</strong>
+      <p id="importDescription">Não há dados na nuvem ainda. Primeiro baixe uma cópia deste notebook. Depois você escolhe se importa os dados locais ou inicia vazio.</p>
       <button id="downloadLocalBackup" type="button">1. Baixar backup deste notebook</button>
       <label for="backupFileInput">Selecione o arquivo de backup deste computador</label>
       <input id="backupFileInput" class="import-file-input" type="file" accept=".json,application/json">
