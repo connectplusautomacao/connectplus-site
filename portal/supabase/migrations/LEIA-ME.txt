@@ -1,0 +1,16 @@
+ASSINATURA ELETRÔNICA DO PORTAL DO CLIENTE
+
+O arquivo 202611270001_client_portal_signatures.sql pertence exclusivamente
+ao Supabase usado pelo Portal do Cliente (pseknwikhzfkqqgnevwt). Não execute
+esta migração no projeto interno “ConnectPlus Gestão Interna”.
+
+O registro é uma assinatura eletrônica simples vinculada à conta autenticada.
+Ele preserva o nome informado, o e-mail da conta, o documento, o hash SHA-256,
+o texto de consentimento, a data e o navegador. O cliente só pode assinar
+documentos liberados para os próprios projetos. O sistema não usa certificado
+ICP-Brasil nem substitui uma plataforma de assinatura avançada/qualificada.
+
+Antes de ativar em produção, revise o texto contratual e a modalidade de
+assinatura com orientação jurídica adequada. A função client-projects também
+precisa ser atualizada no projeto Supabase do portal para aceitar a ação
+client_sign_document.

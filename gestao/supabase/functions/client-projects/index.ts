@@ -46,6 +46,7 @@ const portal = () => createClient(required('PORTAL_SUPABASE_URL'), required('POR
 
 const DOCUMENT_BUCKET = 'client-documents';
 const MAX_DOCUMENT_BYTES = 15 * 1024 * 1024;
+const SIGNATURE_CONSENT = 'Confirmo que li o documento eletrônico identificado neste portal, que sou o titular autenticado desta conta ou representante autorizado e que manifesto minha concordância em assiná-lo eletronicamente. Reconheço que este registro será associado à minha conta, ao arquivo e ao horário da confirmação.';
 const ALLOWED_DOCUMENT_TYPES: Record<string, string[]> = {
   'application/pdf': ['.pdf'],
   'image/jpeg': ['.jpg', '.jpeg'],
@@ -228,17 +229,80 @@ async function supportRequests(admin: ReturnType<typeof portal>, input: any) {
   return { ok: true };
 }
 
+async function authenticatePortalClient(request: Request, admin: ReturnType<typeof portal>) {
+  const authorization = request.headers.get('Authorization') || '';
+  if (!authorization.startsWith('Bearer ')) throw new Error('Unauthorized');
+  const token = authorization.slice('Bearer '.length);
+  const { data, error } = await admin.auth.getUser(token);
+  if (error || !data.user?.id || !data.user.email) throw new Error('Unauthorized');
+  return data.user;
+}
+
+async function signClientDocument(admin: ReturnType<typeof portal>, input: any, request: Request, user: any) {
+  const documentId = String(input.documentId || '').trim();
+  const signerName = String(input.signerName || '').trim().replace(/\s+/g, ' ').slice(0, 180);
+  if (!documentId || signerName.length < 2 || input.accepted !== true) {
+    throw new Error('Confira o documento, informe seu nome completo e confirme a declaração para assinar.');
+  }
+
+  const { data: document, error: documentError } = await admin.from('project_documents')
+    .select('id, project_id, title, file_name, storage_path, visible_to_client')
+    .eq('id', documentId).eq('visible_to_client', true).maybeSingle();
+  if (documentError) throw documentError;
+  if (!document) throw new Error('Este documento não está disponível para assinatura.');
+  const { data: membership, error: membershipError } = await admin.from('project_members')
+    .select('project_id').eq('project_id', document.project_id).eq('user_id', user.id).maybeSingle();
+  if (membershipError) throw membershipError;
+  if (!membership) throw new Error('Sua conta não tem acesso a este projeto.');
+
+  const { data: prior, error: priorError } = await admin.from('client_document_signatures')
+    .select('id, signed_at, signer_name, document_sha256')
+    .eq('document_id', document.id).eq('user_id', user.id).maybeSingle();
+  if (priorError) throw priorError;
+  if (prior) return { ok: true, alreadySigned: true, signature: prior };
+
+  const { data: file, error: fileError } = await admin.storage.from(DOCUMENT_BUCKET).download(document.storage_path);
+  if (fileError || !file) throw fileError || new Error('Não foi possível conferir o arquivo antes da assinatura.');
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  const documentSha256 = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  const { data: signature, error: signatureError } = await admin.from('client_document_signatures').insert({
+    document_id: document.id,
+    project_id: document.project_id,
+    user_id: user.id,
+    signer_name: signerName,
+    signer_email: user.email.toLowerCase(),
+    document_title: String(document.title || 'Documento Connect Plus').slice(0, 180),
+    document_file_name: String(document.file_name || 'documento').slice(0, 180),
+    document_sha256: documentSha256,
+    consent_text: SIGNATURE_CONSENT,
+    user_agent: String(request.headers.get('User-Agent') || '').slice(0, 500),
+  }).select('id, signed_at, signer_name, document_sha256').single();
+  if (signatureError?.code === '23505') {
+    const { data: duplicate, error: duplicateError } = await admin.from('client_document_signatures')
+      .select('id, signed_at, signer_name, document_sha256')
+      .eq('document_id', document.id).eq('user_id', user.id).maybeSingle();
+    if (duplicateError) throw duplicateError;
+    if (duplicate) return { ok: true, alreadySigned: true, signature: duplicate };
+  }
+  if (signatureError) throw signatureError;
+  return { ok: true, alreadySigned: false, signature };
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   let action = 'unknown';
   try {
-    const staff = await authenticateStaff(request);
     const input = await request.json();
     action = String(input?.action || 'unknown');
+    const admin = portal();
+    if (action === 'client_sign_document') {
+      const user = await authenticatePortalClient(request, admin);
+      return json(await signClientDocument(admin, input, request, user));
+    }
+    const staff = await authenticateStaff(request);
     const isSupportAction = ['support_list', 'support_update'].includes(action);
     if (!isSupportAction && !['owner', 'admin'].includes(staff.role)) throw new Error('Forbidden');
-    const admin = portal();
     if (input.action === 'provision') return json(await provisionProject(admin, input));
     if (input.action === 'publish_progress') return json(await publishProgress(admin, input));
     if (input.action === 'prepare_document_upload') return json(await prepareDocumentUpload(admin, input));
