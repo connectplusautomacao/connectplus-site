@@ -32,15 +32,19 @@ function renderAdminDashboard() {
   const root = document.getElementById('adminDashboard');
   if (!root || typeof db !== 'object') return;
 
-  const month = String(isoToday || new Date().toISOString().slice(0, 10)).slice(0, 7);
+  const monthInput = document.getElementById('adminDashboardMonth');
+  const currentMonth = String(isoToday || new Date().toISOString().slice(0, 10)).slice(0, 7);
+  if (monthInput && !monthInput.value) monthInput.value = currentMonth;
+  const month = monthInput?.value || currentMonth;
   const monthDate = new Date(`${month}-01T12:00:00`);
-  adminDashboardValue('adminDashboardMonth', monthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }));
-
+  const monthLabel = monthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const receipts = Array.isArray(db.receipts) ? db.receipts : [];
+  const monthReceipts = receipts.filter((item) => String(item.date || '').slice(0, 7) === month);
   const confirmed = receipts.filter((item) => item.status === 'Confirmado');
-  const receivedThisMonth = confirmed.filter((item) => String(item.date || '').slice(0, 7) === month)
+  const confirmedThisMonth = monthReceipts.filter((item) => item.status === 'Confirmado');
+  const receivedThisMonth = confirmedThisMonth
     .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  const awaiting = receipts.filter((item) => item.status === 'Aguardando conferência');
+  const awaiting = monthReceipts.filter((item) => item.status === 'Aguardando conferência');
   const reviewTotal = awaiting.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
   const plans = Array.isArray(db.receipt?.paymentSchedule) ? db.receipt.paymentSchedule : [];
@@ -66,9 +70,9 @@ function renderAdminDashboard() {
   const estimatedProfit = monthProjects.reduce((sum, result) => sum + (Number(result.net) || 0), 0);
 
   adminDashboardValue('dashboardReceived', adminDashboardCurrency.format(receivedThisMonth));
-  adminDashboardValue('dashboardReceivedNote', `${confirmed.filter((item) => String(item.date || '').slice(0, 7) === month).length} pagamento(s) confirmado(s) no mês`);
+  adminDashboardValue('dashboardReceivedNote', `${confirmedThisMonth.length} pagamento(s) confirmado(s) em ${monthLabel}`);
   adminDashboardValue('dashboardReceivable', adminDashboardCurrency.format(receivable));
-  adminDashboardValue('dashboardReceivableNote', `${openPlans} parcela(s) em aberto no cronograma`);
+  adminDashboardValue('dashboardReceivableNote', `${openPlans} parcela(s) em aberto no cronograma · todos os períodos`);
   adminDashboardValue('dashboardFixedCosts', adminDashboardCurrency.format(fixedCostTotal));
   adminDashboardValue('dashboardFixedCostsNote', 'Lançamentos fixos do mês selecionado');
   adminDashboardValue('dashboardEstimatedProfit', monthProjects.length ? adminDashboardCurrency.format(estimatedProfit) : 'Pendente');
@@ -83,7 +87,7 @@ function renderAdminDashboard() {
   const alerts = document.getElementById('adminDashboardAlerts');
   if (alerts) {
     alerts.replaceChildren();
-    adminDashboardAddAlert(alerts, 'Comprovantes para conferir', `${adminDashboardCurrency.format(reviewTotal)} aguardando validação`, awaiting.length, 'warning');
+    adminDashboardAddAlert(alerts, 'Comprovantes para conferir', `${adminDashboardCurrency.format(reviewTotal)} aguardando validação em ${monthLabel}`, awaiting.length, 'warning');
     adminDashboardAddAlert(alerts, 'Solicitações de suporte em aberto', 'Chamados aguardando atendimento da equipe', openSupport, 'blue');
     adminDashboardAddAlert(alerts, 'Ordens de serviço em andamento', 'Execuções que ainda não foram concluídas', openExecutions, 'green');
   }
@@ -91,11 +95,11 @@ function renderAdminDashboard() {
   const movementHost = document.getElementById('adminDashboardMovements');
   if (movementHost) {
     movementHost.replaceChildren();
-    const rows = receipts.slice(0, 5);
+    const rows = monthReceipts.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 5);
     if (!rows.length) {
       const empty = document.createElement('p');
       empty.className = 'admin-dashboard-empty';
-      empty.textContent = 'Nenhum pagamento registrado ainda.';
+      empty.textContent = `Nenhum pagamento registrado em ${monthLabel}.`;
       movementHost.append(empty);
     } else {
       const table = document.createElement('table');
@@ -128,6 +132,7 @@ function renderAdminDashboard() {
 }
 
 document.getElementById('refreshAdminDashboard')?.addEventListener('click', renderAdminDashboard);
+document.getElementById('adminDashboardMonth')?.addEventListener('change', renderAdminDashboard);
 document.getElementById('adminDashboardManageAccess')?.addEventListener('click', () => {
   document.getElementById('companyMemberForm')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   document.getElementById('companyMemberEmail')?.focus({ preventScroll: true });
