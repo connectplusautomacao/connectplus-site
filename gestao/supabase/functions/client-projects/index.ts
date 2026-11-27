@@ -251,6 +251,29 @@ async function publishExecutionUpdate(admin: ReturnType<typeof portal>, input: a
   return { ok: true };
 }
 
+async function publishPaymentReceiptUpdate(admin: ReturnType<typeof portal>, input: any) {
+  const code = String(input.code || '').trim();
+  const receiptNumber = String(input.receiptNumber || '').trim().slice(0, 40);
+  const amount = Number(input.amount);
+  const date = String(input.date || '').trim().slice(0, 10);
+  const nature = String(input.nature || '').trim().slice(0, 50);
+  if (!code || !receiptNumber || !Number.isFinite(amount) || amount <= 0 || !date) {
+    throw new Error('Dados do pagamento incompletos para avisar o cliente.');
+  }
+  const { data: project, error: findError } = await admin.from('projects').select('id').eq('code', code).maybeSingle();
+  if (findError || !project) throw findError || new Error('Projeto não liberado no portal.');
+  const title = 'Pagamento confirmado';
+  const message = `O pagamento ${receiptNumber} foi confirmado: ${amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, em ${date}${nature ? ` (${nature.toLocaleLowerCase('pt-BR')})` : ''}. O comprovante está disponível nesta área quando anexado pela equipe.`;
+  const { error } = await admin.from('project_updates').insert({
+    project_id: project.id,
+    title,
+    message,
+    visible_to_client: true,
+  });
+  if (error) throw error;
+  return { ok: true };
+}
+
 async function supportRequests(admin: ReturnType<typeof portal>, input: any) {
   if (input.action === 'client_support_list') {
     const user = input.clientUser;
@@ -369,11 +392,13 @@ Deno.serve(async (request) => {
     const staff = await authenticateStaff(request);
     const isSupportAction = ['support_list', 'support_update'].includes(action);
     const isExecutionUpdate = action === 'publish_execution_update';
+    const isPaymentUpdate = action === 'publish_payment_receipt';
     const isTechnicalDocumentAction = ['prepare_technical_document_upload', 'complete_technical_document_upload'].includes(action);
-    if (!isSupportAction && !isExecutionUpdate && !isTechnicalDocumentAction && !['owner', 'admin'].includes(staff.role)) throw new Error('Forbidden');
+    if (!isSupportAction && !isExecutionUpdate && !isPaymentUpdate && !isTechnicalDocumentAction && !['owner', 'admin'].includes(staff.role)) throw new Error('Forbidden');
     if (input.action === 'provision') return json(await provisionProject(admin, input));
     if (input.action === 'publish_progress') return json(await publishProgress(admin, input));
     if (input.action === 'publish_execution_update') return json(await publishExecutionUpdate(admin, input));
+    if (input.action === 'publish_payment_receipt') return json(await publishPaymentReceiptUpdate(admin, input));
     if (input.action === 'prepare_technical_document_upload') return json(await prepareDocumentUpload(admin, input, true));
     if (input.action === 'complete_technical_document_upload') return json(await completeDocumentUpload(admin, input, true));
     if (input.action === 'prepare_document_upload') return json(await prepareDocumentUpload(admin, input));

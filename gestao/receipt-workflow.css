@@ -1,0 +1,32 @@
+#receiptWorkflow{display:grid;gap:14px;margin:18px 0}
+.payment-summary-card,.payment-schedule-card,.payment-proof-card{padding:16px;border:1px solid var(--line);border-radius:14px;background:#f8fbff}
+.payment-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.payment-heading h3,.payment-proof-card h3{margin:2px 0 4px;color:var(--navy)}
+.payment-heading small,.receipt-muted{color:var(--muted)}
+.receipt-eyebrow{margin:0;color:#087da7;font-size:11px;font-weight:800;letter-spacing:.09em}
+.payment-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:14px 0}
+.payment-summary-grid>div{display:grid;gap:4px;padding:12px;border:1px solid #d8e6f2;border-radius:10px;background:#fff}
+.payment-summary-grid small{color:var(--muted);font-size:12px}
+.payment-summary-grid strong{color:var(--navy);font-size:17px}
+.receipt-status-field,.payment-plan-select{display:grid;gap:5px;max-width:360px;color:var(--muted);font-size:13px;font-weight:700}
+.receipt-status-field select,.payment-plan-select select,.payment-schedule-form input,.receipt-list-tools input,.receipt-list-tools select,.payment-proof-card input{min-height:42px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit}
+.receipt-notice{margin:10px 0 0;color:#5b6371;font-size:13px}
+.payment-schedule-form{display:grid;grid-template-columns:1.15fr 1fr 1fr auto;gap:9px;align-items:end;margin:12px 0}
+.payment-schedule-form label,.payment-proof-card label{display:grid;gap:5px;color:var(--muted);font-size:13px;font-weight:700}
+.payment-plan-list{display:grid;gap:8px;margin-top:12px}
+.payment-plan-row{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #d8e6f2;border-radius:10px;background:#fff}
+.payment-plan-row>div{display:grid;gap:3px;flex:1}
+.payment-plan-row small{color:var(--muted)}
+.payment-state{display:inline-flex;align-items:center;width:max-content;padding:5px 9px;border-radius:999px;background:#eaf1fa;color:#526980;font-size:12px;font-weight:700;white-space:nowrap}
+.payment-state.confirmado,.payment-state.quitada{background:#e5f7ee;color:#16754b}
+.payment-state.aguardando,.payment-state.parcial{background:#fff4d8;color:#8a5c00}
+.payment-state.recusado,.payment-state.vencida{background:#ffeded;color:#a82f37}
+.payment-proof-card{display:grid;grid-template-columns:1fr minmax(200px,.7fr) auto;gap:10px;align-items:end}
+.payment-proof-actions{display:grid;gap:7px}
+.payment-proof-card>div{align-self:center}
+.payment-proof-card p{margin:4px 0 0}
+.payment-proof-card .save-status{grid-column:1/-1;margin:0}
+.receipt-list-tools{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,.5fr);gap:8px;margin-bottom:10px}
+@media(max-width:760px){.payment-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.payment-schedule-form{grid-template-columns:1fr 1fr}.payment-schedule-form button{grid-column:1/-1}.payment-proof-card{grid-template-columns:1fr 1fr}.payment-proof-card>div,.payment-proof-card .save-status{grid-column:1/-1}.payment-proof-actions{grid-column:1/-1;grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.payment-plan-row{align-items:flex-start;flex-wrap:wrap}.payment-plan-row>div{flex-basis:100%}.receipt-list-tools{grid-template-columns:1fr}.payment-heading{flex-wrap:wrap}}
+@media print{#receiptWorkflow{display:none!important}}

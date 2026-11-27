@@ -42,6 +42,8 @@ function removePortalControls() {
   document.getElementById('publishPortalProgress')?.closest('.portal-progress-controls')?.remove();
   document.getElementById('portalSupportInbox')?.remove();
   document.getElementById('portalDocumentUpload')?.remove();
+  delete window.__cpPublishPaymentReceipt;
+  delete window.__cpUploadReceiptProof;
   if (supportPollTimer) clearInterval(supportPollTimer);
   supportPollTimer = null;
   supportControlsInitialized = false;
@@ -60,6 +62,9 @@ function setPortalRole(role) {
   const initializeTeamControls = () => {
     initSupportControls();
     bindExecutionDiaryPublisher();
+    window.__cpPublishPaymentReceipt = publishPaymentReceipt;
+    window.__cpUploadReceiptProof = uploadReceiptProof;
+    window.__cpUploadGeneratedReceipt = uploadGeneratedReceipt;
   };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeTeamControls, { once: true });
@@ -139,6 +144,82 @@ async function callExecutionUpdateFunction(payload) {
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error || 'Não foi possível publicar a atualização técnica.');
   return result;
+}
+
+async function callPaymentUpdateFunction(payload) {
+  if (!hasTeamSupportAccess()) throw new Error('Esta ação está disponível somente para contas ativas da equipe.');
+  if (payload?.action !== 'publish_payment_receipt') throw new Error('Ação de pagamento inválida.');
+  if (!portalUrl || !portalKey) throw new Error('A conexão do portal precisa ser configurada.');
+  if (!window.__getTeamSupportAccessToken) throw new Error('Entre novamente na plataforma da equipe.');
+  const token = await window.__getTeamSupportAccessToken();
+  if (!token) throw new Error('Sua sessão expirou. Entre novamente na plataforma da equipe.');
+  const response = await fetch(actionUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: portalKey, Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Não foi possível avisar o cliente sobre o pagamento.');
+  return result;
+}
+
+async function publishPaymentReceipt(receipt) {
+  const saved = window.__cpPortalBridge?.getSavedQuotes().find((row) => row.id === receipt?.quoteId);
+  if (!saved?.q?.portal?.projectId) throw new Error('Libere primeiro o orçamento no Portal do Cliente.');
+  await callPaymentUpdateFunction({
+    action: 'publish_payment_receipt', code: saved.id,
+    receiptNumber: receipt.number, amount: receipt.amount, date: receipt.date, nature: receipt.nature,
+  });
+}
+
+async function uploadReceiptProof() {
+  const fileInput = document.getElementById('receiptProofFile');
+  const receipt = window.__cpPortalBridge?.getReceipt();
+  await uploadReceiptFile(fileInput?.files?.[0], receipt, `Comprovante de pagamento · ${receipt?.number || ''}`);
+}
+
+async function uploadGeneratedReceipt(blob, fileName, receipt) {
+  if (!blob || !fileName) {
+    const status = document.getElementById('receiptProofStatus');
+    if (status) status.textContent = 'Gere primeiro o PDF oficial em duas vias.';
+    return;
+  }
+  await uploadReceiptFile(new File([blob], fileName, { type: 'application/pdf' }), receipt, `Recibo de pagamento · ${receipt?.number || ''}`);
+}
+
+async function uploadReceiptFile(file, receipt, title) {
+  const status = document.getElementById('receiptProofStatus');
+  const button = document.getElementById('sendReceiptProof');
+  const saved = window.__cpPortalBridge?.getSavedQuotes().find((row) => row.id === receipt?.quoteId);
+  if (!file) { status.textContent = 'Escolha o arquivo do comprovante.'; status.classList.add('error'); return; }
+  if (receipt?.status !== 'Confirmado') { status.textContent = 'Confirme o pagamento antes de disponibilizar o comprovante no portal.'; status.classList.add('error'); return; }
+  if (!saved?.q?.portal?.projectId) { status.textContent = 'Libere primeiro o orçamento no Portal do Cliente.'; status.classList.add('error'); return; }
+  const contentType = documentMime(file);
+  if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(contentType)) {
+    status.textContent = 'Envie PDF, JPG, PNG ou WEBP.'; status.classList.add('error'); return;
+  }
+  if (file.size <= 0 || file.size > maxDocumentBytes) { status.textContent = 'O arquivo deve ter até 15 MB.'; status.classList.add('error'); return; }
+  if (!confirm(`Enviar “${file.name}” para o Portal do Cliente de ${saved.q.client || 'este projeto'}? O arquivo ficará visível ao cliente.`)) return;
+  button.disabled = true;
+  status.classList.remove('error'); status.textContent = 'Preparando o envio privado…';
+  try {
+    if (!portalStorageClient) portalStorageClient = createClient(portalUrl, portalKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const title = `Comprovante de pagamento · ${receipt.number}`;
+    const prepared = await callTechnicalDocumentFunction({ action: 'prepare_technical_document_upload', code: saved.id, title, fileName: file.name, contentType, size: file.size });
+    status.textContent = 'Enviando o arquivo…';
+    const { error: uploadError } = await portalStorageClient.storage.from(documentBucket)
+      .uploadToSignedUrl(prepared.path, prepared.token, file, { contentType });
+    if (uploadError) throw uploadError;
+    await callTechnicalDocumentFunction({ action: 'complete_technical_document_upload', code: saved.id, title, fileName: file.name, path: prepared.path });
+    status.textContent = 'Comprovante liberado no portal do cliente.';
+    const fileInput = document.getElementById('receiptProofFile');
+    if (fileInput && fileInput.files?.[0] === file) fileInput.value = '';
+  } catch (error) {
+    status.textContent = error.message || 'Não foi possível enviar o comprovante.';
+    status.classList.add('error');
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function callTechnicalDocumentFunction(payload) {
