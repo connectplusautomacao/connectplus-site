@@ -205,6 +205,21 @@ async function publishProgress(admin: ReturnType<typeof portal>, input: any) {
 }
 
 async function supportRequests(admin: ReturnType<typeof portal>, input: any) {
+  if (input.action === 'client_support_list') {
+    const user = input.clientUser;
+    const projectId = String(input.projectId || '');
+    if (!user?.id || !projectId) throw new Error('Projeto inválido para consultar os atendimentos.');
+    const { data: membership, error: membershipError } = await admin.from('project_members')
+      .select('project_id').eq('project_id', projectId).eq('user_id', user.id).maybeSingle();
+    if (membershipError) throw membershipError;
+    if (!membership) throw new Error('Este projeto não está liberado para esta conta.');
+    const { data, error } = await admin.from('support_requests')
+      .select('id, subject, status, created_at, updated_at')
+      .eq('project_id', projectId).eq('user_id', user.id)
+      .order('created_at', { ascending: false }).limit(20);
+    if (error) throw error;
+    return { requests: data || [] };
+  }
   if (input.action === 'support_list') {
     const { data, error } = await admin.from('support_requests')
       .select('id, project_id, user_id, subject, message, contact_phone, status, staff_note, created_at, projects(code,title)')
@@ -299,6 +314,10 @@ Deno.serve(async (request) => {
     if (action === 'client_sign_document') {
       const user = await authenticatePortalClient(request, admin);
       return json(await signClientDocument(admin, input, request, user));
+    }
+    if (action === 'client_support_list') {
+      const user = await authenticatePortalClient(request, admin);
+      return json(await supportRequests(admin, { ...input, clientUser: user }));
     }
     const staff = await authenticateStaff(request);
     const isSupportAction = ['support_list', 'support_update'].includes(action);

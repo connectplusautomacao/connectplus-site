@@ -464,9 +464,10 @@ function formatCurrency(value) {
 async function loadSupportHistory(projectId, node, supportRequests = null) {
   let data = supportRequests;
   let error = null;
-  if (!data) ({ data, error } = await client.from('support_requests')
-    .select('id, subject, status, created_at, updated_at').eq('project_id', projectId)
-    .eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(5));
+  if (!data) {
+    try { data = await loadClientSupportRequests(projectId); }
+    catch (loadError) { error = loadError; }
+  }
   const box = node.querySelector('[data-field="supportHistory"]');
   box.replaceChildren();
   box.classList.add('support-history-card');
@@ -559,6 +560,23 @@ async function callClientSignature(payload) {
   return result;
 }
 
+async function loadClientSupportRequests(projectId) {
+  const { data, error } = await client.auth.getSession();
+  if (error || !data.session?.access_token) throw new Error('Sua sessão expirou. Entre novamente no portal.');
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/client-projects`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${data.session.access_token}`,
+    },
+    body: JSON.stringify({ action: 'client_support_list', projectId }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Não foi possível carregar seus atendimentos.');
+  return result.requests || [];
+}
+
 async function confirmClientSignature() {
   const button = $('confirmSignature');
   const status = $('signatureStatus');
@@ -643,7 +661,8 @@ async function loadProjects(user) {
     const [updatesResult, docsResult, supportResult] = await Promise.all([
       client.from('project_updates').select('title, message, created_at').eq('project_id', project.id).eq('visible_to_client', true).order('created_at', { ascending: false }),
       client.from('project_documents').select('id, title, file_name, storage_path, created_at').eq('project_id', project.id).eq('visible_to_client', true).order('created_at', { ascending: false }),
-      client.from('support_requests').select('id, subject, status, created_at, updated_at').eq('project_id', project.id).eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+      loadClientSupportRequests(project.id).then((requests) => ({ data: requests, error: null }))
+        .catch((error) => ({ data: null, error })),
     ]);
     const { data: updates, error: updatesError } = updatesResult;
     const { data: docs, error: docsError } = docsResult;
